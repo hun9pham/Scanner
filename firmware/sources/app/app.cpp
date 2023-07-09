@@ -146,7 +146,6 @@ void TaskPollMPUIf() {
 		APP_DBG(TAG, "MPU Message: %s", MPU_IncomMsg.buf);
 		if (strcmp((const char*)MPU_IncomMsg.buf, MPU_CORMFIRM) == 0) {
 			task_post_pure_msg(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_PROCEDURE_CALL_RESP);
-			devStagePolling = STAGE_3RD;
 		}
 		memset(&MPU_IncomMsg, 0, sizeof(MPU_IncomMsg_t));
 	}

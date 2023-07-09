@@ -47,81 +47,96 @@ void Indicator::Blinking() {
     }
 }
 
-void Engines::standStill() {
-    this->stateControl = ENGINE_STANDSTILL;
-    if (viaPWM) {
-        ctlMotor1PWM(STOPPING, this->percentPWM);
-        ctlMotor2PWM(STOPPING, this->percentPWM);
-    }
-    else {
+void Engines::standStill(uint8_t motorPos) {
+    if (motorPos == MOTOR_FRONT) {
+        this->motor1State = ENGINE_STANDSTILL;
         ctlMotor1State(STOPPING);
+    }
+    else if (motorPos == MOTOR_REAR) {
+        this->motor2State = ENGINE_STANDSTILL;
         ctlMotor2State(STOPPING);
     }
 }
 
-void Engines::rotateForward() {
-    this->stateControl = ENGINE_FORWARD;
-    if (viaPWM) {
-        ctlMotor1PWM(ROTATE_LEFT, this->percentPWM);
-        ctlMotor2PWM(ROTATE_LEFT, this->percentPWM);
-    }
-    else {
+void Engines::rotateForward(uint8_t motorPos) {
+    if (motorPos == MOTOR_FRONT) {
+        this->motor1State = ENGINE_FORWARD;
         ctlMotor1State(ROTATE_LEFT);
+    }
+    else if (motorPos == MOTOR_REAR) {
+        this->motor2State = ENGINE_FORWARD;
         ctlMotor2State(ROTATE_LEFT);
     }
 }
 
-void Engines::rotateBackward() {
-    this->stateControl = ENGINE_BACKWARD;
-    if (viaPWM) {
-        ctlMotor1PWM(ROTATE_RIGHT, this->percentPWM);
-        ctlMotor2PWM(ROTATE_RIGHT, this->percentPWM);
-    }
-    else {
+void Engines::rotateBackward(uint8_t motorPos) {
+    if (motorPos == MOTOR_FRONT) {
+        this->motor1State = ENGINE_BACKWARD;
         ctlMotor1State(ROTATE_RIGHT);
+    }
+    else if (motorPos == MOTOR_REAR) {
+        this->motor2State = ENGINE_BACKWARD;
         ctlMotor2State(ROTATE_RIGHT);
     }
 }
 
 Engines::Engines() {
-    this->stateControl = ENGINE_STANDSTILL;
+    this->motor1State = ENGINE_STANDSTILL;
+    this->motor2State = ENGINE_STANDSTILL;
 }
 
 Engines::~Engines() {
 
 }
 
-void Engines::initialize(bool viaPWM) {
-    if (viaPWM) {
-        motorsPWMInit();
-        this->percentPWM = 0;
-    }
-    else {
-        motorsNorInit();
-    }
+void Engines::initialize() {
+    motorsNorInit();
 }
 
 void Engines::setOperation(uint8_t oper) {
     switch (oper) {
-    case ENGINE_STANDSTILL: standStill();
+    case ENGINE_STANDSTILL: {
+        standStill(MOTOR_FRONT);
+        standStill(MOTOR_REAR);
+    }
     break;
-    case ENGINE_FORWARD: rotateForward();
+    case ENGINE_FORWARD: {
+        rotateForward(MOTOR_FRONT);
+        rotateForward(MOTOR_REAR);
+    }
     break;
-    case ENGINE_BACKWARD: rotateBackward();
+    case ENGINE_BACKWARD: {
+        rotateBackward(MOTOR_FRONT);
+        rotateBackward(MOTOR_REAR);
+    }
     break;
     default:
     break;
     }
 }
 
-uint8_t Engines::getOperation() {
-    return this->stateControl;
+void Engines::setMotorFront(uint8_t oper) {
+    switch (oper) {
+    case ENGINE_STANDSTILL: standStill(MOTOR_FRONT);
+    break;
+    case ENGINE_FORWARD: rotateForward(MOTOR_FRONT);
+    break;
+    case ENGINE_BACKWARD: rotateBackward(MOTOR_FRONT);
+    break;
+    default:
+    break;
+    }
 }
 
-bool Engines::setPWMSpeed(uint8_t percent) {
-    if (percent < 0 || percent > 100) {
-        return false;
+void Engines::setMotorRear(uint8_t oper) {
+    switch (oper) {
+    case ENGINE_STANDSTILL: standStill(MOTOR_REAR);
+    break;
+    case ENGINE_FORWARD: rotateForward(MOTOR_REAR);
+    break;
+    case ENGINE_BACKWARD: rotateBackward(MOTOR_REAR);
+    break;
+    default:
+    break;
     }
-    this->percentPWM = percent;
-    return true;
 }

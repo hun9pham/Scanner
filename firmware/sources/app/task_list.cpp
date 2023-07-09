@@ -21,7 +21,7 @@ task_polling_t app_task_polling_table[] = {
 #if MPU_SERIAL_INTEFACE_EN
 	{SL_TASK_POLL_SERIAL_IF_ID	,	AK_DISABLE			,	TaskPollSerialIf     },
 #endif
-	{SL_TAKS_POLL_DEVMANAGER_ID	,	AK_ENABLE			,	TaskPollDevManager	 },
+	{SL_TAKS_POLL_DEVMANAGER_ID	,	AK_DISABLE			,	TaskPollDevManager	 },
 	{SL_TAKS_POLL_MPU_IF_ID		,	AK_ENABLE			,	TaskPollMPUIf	     },
 	{SL_TASK_POLLING_EOT_ID		,	AK_DISABLE			,	(pf_task_polling)0	 }
 };

@@ -213,7 +213,7 @@ void inputsInit() {
 	RCC_AHBPeriphClockCmd(IO_INPUTn_CLOCK, ENABLE);
 	GPIO_InitStructure.GPIO_Pin = IO_INPUT1_PIN | IO_INPUT2_PIN | IO_INPUT3_PIN;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
 	GPIO_Init(IO_INPUTn_PORT, &GPIO_InitStructure);
 }
 

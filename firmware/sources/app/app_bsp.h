@@ -48,22 +48,32 @@ enum eEngineState {
     ENGINE_BACKWARD,
 };
 
+enum {
+    MOTOR_FRONT = 0,
+    MOTOR_REAR,
+};
+
 class Engines {
 private:
-    uint8_t stateControl;
-    bool viaPWM;
-    uint8_t percentPWM;
+    uint8_t motor1State;
+    uint8_t motor2State;
 
-    void standStill();
-    void rotateForward();
-    void rotateBackward();
+    void standStill(uint8_t motorPos);
+    void rotateForward(uint8_t motorPos);
+    void rotateBackward(uint8_t motorPos);
 public:
     Engines();
     ~Engines();
-    void initialize(bool isPWM=false);
-    bool setPWMSpeed(uint8_t percent); /* 0-100% */
+    void initialize();
     void setOperation(uint8_t oper);
-    uint8_t getOperation();
+    void setMotorFront(uint8_t oper);
+    void setMotorRear(uint8_t oper);
+    uint8_t getMotorFront() {
+        return motor1State;
+    }
+    uint8_t getMotorRear() {
+        return motor2State;
+    }
 };
 
 extern Engines ENGINES;

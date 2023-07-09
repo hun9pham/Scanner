@@ -230,40 +230,34 @@ int8_t csDbg(uint8_t *argv) {
 	break;
 
 	case 'b': {
-		APP_DBG(TAG, "[START] Control engine forward in 2s");
-		ctlMotor1State(ROTATE_RIGHT);
-		ctlMotor2State(ROTATE_RIGHT);
+		APP_DBG(TAG, "[START] Motor front test in 2s");
+		ENGINES.setMotorFront(ENGINE_FORWARD);
 		delayMillis(2000);
-		ctlMotor1State(STOPPING);
-		ctlMotor2State(STOPPING);
-		APP_DBG(TAG, "[STOP] Control engine forward in 2s");
+		ENGINES.setMotorFront(ENGINE_BACKWARD);
+		delayMillis(2000);
+		ENGINES.setMotorFront(ENGINE_STANDSTILL);
+		APP_DBG(TAG, "[STOP] Motor front test in 2s");
 	}
 	break;
 
 	case 'c': {
-		APP_DBG(TAG, "[START] Control engine backward in 2s");
-		ctlMotor1State(ROTATE_LEFT);
-		ctlMotor2State(ROTATE_LEFT);
+		APP_DBG(TAG, "[START] Motor rear test in 2s");
+		ENGINES.setMotorRear(ENGINE_FORWARD);
 		delayMillis(2000);
-		ctlMotor1State(STOPPING);
-		ctlMotor2State(STOPPING);
-		APP_DBG(TAG, "[STOP] Control engine backward in 2s");
+		ENGINES.setMotorRear(ENGINE_BACKWARD);
+		delayMillis(2000);
+		ENGINES.setMotorRear(ENGINE_STANDSTILL);
+		APP_DBG(TAG, "[STOP] Motor rear test in 2s");
 	}
 	break;
 
 	case 'd': {
 		APP_DBG(TAG, "[START] Read inputs in 5s");
 		uint32_t now = millisTick();
-		while (millisTick() - now != 0) {
-			if (readInput1() == 0) {
-				APP_PRINT("->Input[1] active LOW\r\n");
-			}
-			if (readInput2() == 0) {
-				APP_PRINT("->Input[2] active LOW\r\n");
-			}
-			if (readInput3() == 0) {
-				APP_PRINT("->Input[2] active LOW\r\n");
-			}
+		while (millisTick() - now > 5000) {
+			APP_PRINT("->Input[1] active %d\r\n", readInput1());
+			APP_PRINT("->Input[2] active %d\r\n", readInput2());
+			APP_PRINT("->Input[3] active %d\r\n", readInput3());
 		}
 		APP_DBG(TAG, "[STOP] Read inputs in 5s");
 	}
@@ -275,8 +269,8 @@ int8_t csDbg(uint8_t *argv) {
 		APP_PRINT("  dbg [options]\n");
 		APP_PRINT("Options:\n");
 		APP_PRINT("  a: Blink all LEDs\n");
-		APP_PRINT("  b: Engine forward in 2s\n");
-		APP_PRINT("  c: Engine backward in 2s\n");
+		APP_PRINT("  b: Motor front test in 2s\n");
+		APP_PRINT("  c: Motor rear test in 2s\n");
 		APP_PRINT("  d: Read inputs in 5s\n");	
 	}
 	break;
