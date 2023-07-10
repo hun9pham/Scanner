@@ -17,6 +17,7 @@ typedef enum eDevCtlStage {
     STAGE_3RD,
     STAGE_4TH,
     STAGE_5TH,
+    EXCEPTION_CASE,
 } DevMngCtlStage_t;
 
 /* Typedef -------------------------------------------------------------------*/

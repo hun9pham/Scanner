@@ -27,7 +27,7 @@
 static uint32_t now = 0;
 
 /* Private function prototypes -----------------------------------------------*/
-static void sendMsgREQ(const char *pcMsg) {
+static void sendPCREQandWait(const char *pcMsg) {
 	task_post_common_msg(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_PROCEDURE_CALL_REQ,
 			(uint8_t*)pcMsg, strlen(pcMsg));
 }
@@ -57,6 +57,32 @@ static uint8_t assertSensState(uint8_t sensId) {
 /* Function implementation ---------------------------------------------------*/
 void TaskDeviceManager(ak_msg_t* msg) {
 	switch (msg->sig) {
+	case SL_DMANAGER_REFRESH_WORKFLOW: {
+		APP_DBG_SIG(TAG, "SL_DMANAGER_REFRESH_WORKFLOW");
+		/* Check tất cả cảm biến, nếu có giấy bên trong máy sẵn, cho nhả ra */
+
+		/* Giấy đã được nhả ra hết */
+		if (assertSensState(1) != 0 && assertSensState(2) != 0 && assertSensState(3) != 0) {
+			LEDFLASH.OffState();
+			LEDDIR.OffState();
+			ENGINES.setOperation(ENGINE_STANDSTILL);
+			task_polling_set_ability(SL_TAKS_POLL_DEVMANAGER_ID, AK_ENABLE);
+			devStagePolling = STAGE_1ST;
+			break;
+		}
+
+		/* Lỗi giấy còn trong máy */
+		APP_DBG(TAG, "Conveyor detects pappers");
+		if (assertSensState(1) == 0 || assertSensState(2) == 0) {
+			ENGINES.setMotorFront(ENGINE_BACKWARD);
+		}
+		if (assertSensState(3) == 0) {
+			ENGINES.setMotorRear(ENGINE_BACKWARD);
+		}
+		timer_set(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_REFRESH_WORKFLOW, 350, TIMER_ONE_SHOT);
+	}
+	break;
+
 	case SL_DMANAGER_PROCEDURE_CALL_REQ: {
 		APP_DBG_SIG(TAG, "SL_DMANAGER_PROCEDURE_CALL_REQ");
 
@@ -77,33 +103,16 @@ void TaskDeviceManager(ak_msg_t* msg) {
 	}
 	break;
 
-	case SL_DMANAGER_PROCEDURE_CALL_RESP_TO: {
-		APP_DBG_SIG(TAG, "SL_DMANAGER_PROCEDURE_CALL_RESP_TO");
+	case SL_DMANAGER_EXCEPTION_SHORTPAPER: {
+		APP_DBG_SIG(TAG, "SL_DMANAGER_EXCEPTION_SHORTPAPER");
 
 	}
 	break;
 
-	case SL_DMANAGER_CHECK_PAPER_EXISTENCE: {
-		APP_DBG_SIG(TAG, "SL_DMANAGER_CHECK_PAPER_EXISTENCE");
+	case SL_DMANAGER_EXCEPTION_PAPERJAM: {
+		APP_DBG_SIG(TAG, "SL_DMANAGER_EXCEPTION_PAPERJAM");
 
-		/* Giấy đã được nhả ra hết */
-		if (assertSensState(1) != 0 && assertSensState(2) != 0 && assertSensState(3) != 0) {
-			timer_remove_attr(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_CHECK_PAPER_EXISTENCE);
-			ENGINES.setOperation(ENGINE_STANDSTILL);
-			task_polling_set_ability(SL_TAKS_POLL_DEVMANAGER_ID, AK_ENABLE);
-			break;
-		}
-
-		/* Lỗi giấy còn trong máy */
-		APP_DBG(TAG, "Conveyor detects pappers");
-		if (assertSensState(1) == 0 || assertSensState(2) == 0) {
-			ENGINES.setMotorFront(ENGINE_BACKWARD);
-		}
-		if (assertSensState(3) == 0) {
-			ENGINES.setMotorRear(ENGINE_BACKWARD);
-		}
-		timer_set(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_CHECK_PAPER_EXISTENCE, 
-			SL_DMANAGER_CHECK_PAPER_EXISTENCE_INTERVAL, TIMER_PERIODIC);
+		LEDFAULT.OnState();
 	}
 	break;
 
@@ -125,7 +134,7 @@ void TaskPollDevManager() {
 			LEDDIR.Blinking();
 			/* Check cảm biến 1 */
 			if (assertSensState(1) == 0) {
-				APP_DBG(TAG, "[ON-STAGE] STAGE_1ST");
+				APP_DBG(TAG, "[DONE-STAGE] STAGE_1ST");
 				LEDDIR.OffState();
 				ENGINES.setMotorFront(ENGINE_BACKWARD);
 				/* Next stage */
@@ -135,14 +144,32 @@ void TaskPollDevManager() {
 		break;
 
     	case STAGE_2ND: { /* Cuốn vào đến khi cảm biến 3 phát hiện */
-			if (assertSensState(3) == 0) {
-				APP_DBG(TAG, "[ON-STAGE] STAGE_2ND");
+			/* 
+				Exception: Giấy ngắn (cảm biến 1 phát hiện giấy cuốn vào, 
+				cảm biến 1 phát hiện hết giấy, cảm biến 2 phát hiện có 
+				giấy, cảm biến 3 ko có giấy) 
+			*/
+			if ((assertSensState(1) == 0 && assertSensState(2) == 1) &&
+				assertSensState(3) == 1)
+			{
+				/* 
+					REQ: Giấy ngắn, báo chụp ảnh, đợi confirm rồi nhả giấy ra
+				*/
+				/* Dừng động cơ */
+				ENGINES.setMotorFront(ENGINE_STANDSTILL);
+				/* Gửi message yêu cầu chụp hình */
+				sendPCREQandWait(MPU_REQSCREENSHOT);
+				/* Exception case handle */
+				devStagePolling = EXCEPTION_CASE;
+			}
+			else if (assertSensState(3) == 0) {
+				APP_DBG(TAG, "[DONE-STAGE] STAGE_2ND");
 				/* Dừng động cơ */
 				ENGINES.setMotorFront(ENGINE_STANDSTILL);
 				/* On LED Flash */
 				LEDFLASH.OnState();
 				/* Gửi message yêu cầu chụp hình */
-				sendMsgREQ(MPU_REQSCREENSHOT);
+				sendPCREQandWait(MPU_REQSCREENSHOT);
 				/* Next stage */
 				devStagePolling = STAGE_3RD;
 			}
@@ -155,11 +182,11 @@ void TaskPollDevManager() {
 				ENGINES.setOperation(ENGINE_BACKWARD);
 			}
 			if (assertSensState(1) != 0 && assertSensState(2) != 0) { /* Giấy đã đi qua hết sensors[1:2] */
-				APP_DBG(TAG, "[ON-STAGE] STAGE_3RD");
+				APP_DBG(TAG, "[DONE-STAGE] STAGE_3RD");
 				/* Dừng motor front và tiếp tục chạy motor rear để tránh quá tải */
 				ENGINES.setMotorFront(ENGINE_STANDSTILL);
 				/* Gửi message yêu cầu chụp hình */
-				sendMsgREQ(MPU_REQSCREENSHOT);
+				sendPCREQandWait(MPU_REQSCREENSHOT);
 				/* Next stage */
 				devStagePolling = STAGE_4TH;
 			}
@@ -167,7 +194,7 @@ void TaskPollDevManager() {
 		break;
 
     	case STAGE_4TH: { /* Chờ MPU Confirm rồi gửi command hết giấy tới MPU */
-			APP_DBG(TAG, "[ON-STAGE] STAGE_4TH");
+			APP_DBG(TAG, "[DONE-STAGE] STAGE_4TH");
 			/* Gửi command hết giấy mà không cần chờ phản hồi */
 			const char *notifyMsg = MPU_OUTOFPAPPER;
 			putMPUMessage(notifyMsg);
@@ -178,9 +205,8 @@ void TaskPollDevManager() {
 		break;
 
     	case STAGE_5TH: { /* Sau khi gửi message hết giấy thì nhả giấy ra khỏi bộ cuốn giấy */
-			APP_DBG(TAG, "[ON-STAGE] STAGE_5TH");
-
 			if (assertSensState(3) != 0) { /* Giấy đã được cuộn ra hết */
+				APP_DBG(TAG, "[DONE-STAGE] STAGE_5TH");
 				delayMillis(300); /* Delay them 1 chút để giấy cuốn hết ra ngoài */
 				ENGINES.setOperation(ENGINE_STANDSTILL);
 				/* Tắt LED Flash */
@@ -190,9 +216,39 @@ void TaskPollDevManager() {
 			}
 		}
 		break;
+
+		case EXCEPTION_CASE: {
+			task_post_pure_msg(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_REFRESH_WORKFLOW);
+		}
+		break;
 		
 		default:
 		break;
+		}
+
+		/*
+			-TODO: Check motors encoder if is running
+			Kẹt giấy: động cơ được cho quay nhưng encoder đọc ko thấy quay, 
+			dừng động cơ báo lỗi fault. Led fault sáng lên gửi message “#3\r\n”.
+		*/
+		if (ENGINES.getMotorFront() != ENGINE_STANDSTILL && 
+			ENGINES.getMotorRear() != ENGINE_STANDSTILL)
+		{
+			uint8_t isRun = 0;
+			isRun += ENGINES.isMotorFrontRunning();
+			isRun += ENGINES.isMotorRearRunning();
+			if (isRun != (uint8_t)(true + true)) {
+				/* LED Fault sáng */
+				LEDFAULT.OnState();
+				/* Gửi message “#3\r\n” */
+				const char *repMsg = MPU_PAPERJAM;
+				putMPUMessage(repMsg);
+				devStagePolling = STAGE_IDLE;
+			}
+			else {
+				/* LED Fault tắt */
+				LEDFAULT.OffState();
+			}
 		}
 	}
 }

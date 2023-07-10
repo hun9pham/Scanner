@@ -47,9 +47,8 @@ void TaskSystem(ak_msg_t* msg) {
 
 		memset(&MPU_IncomMsg, 0, sizeof(MPU_IncomMsg_t));
 		LEDSTATUS.OnState();
-		devStagePolling = STAGE_1ST;
 		putMPUMessage(MPU_NOTIFYLOGIN);
-		task_post_pure_msg(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_CHECK_PAPER_EXISTENCE);
+		task_post_pure_msg(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_REFRESH_WORKFLOW);
 	}
 	break;
 

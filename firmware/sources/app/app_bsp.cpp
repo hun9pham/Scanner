@@ -140,3 +140,18 @@ void Engines::setMotorRear(uint8_t oper) {
     break;
     }
 }
+bool Engines::isMotorFrontRunning() {
+    bool ret = false;
+
+    // TODO: Read encoder PWM
+
+    return ret;
+}
+
+bool Engines::isMotorRearRunning() {
+    bool ret = false;
+
+    // TODO: Read encoder PWM
+
+    return ret;
+}

@@ -77,14 +77,14 @@ enum {
  *  Note: Message signals
  *----------------------------------------------------------------------------*/
 /* Define timer */
-#define SL_DMANAGER_CHECK_PAPER_EXISTENCE_INTERVAL  (350)
 
 /* Define signal */
 enum {
-    SL_DMANAGER_PROCEDURE_CALL_REQ = AK_USER_DEFINE_SIG,
+    SL_DMANAGER_REFRESH_WORKFLOW = AK_USER_DEFINE_SIG,
+    SL_DMANAGER_PROCEDURE_CALL_REQ,
     SL_DMANAGER_PROCEDURE_CALL_RESP,
-    SL_DMANAGER_PROCEDURE_CALL_RESP_TO,
-    SL_DMANAGER_CHECK_PAPER_EXISTENCE,
+    SL_DMANAGER_EXCEPTION_SHORTPAPER,
+    SL_DMANAGER_EXCEPTION_PAPERJAM,
 };
 
 /*----------------------------------------------------------------------------*
@@ -115,6 +115,7 @@ enum {
 #define MPU_CORMFIRM         (const char*)"1\n"
 #define MPU_OUTOFPAPPER      (const char*)"#2\r\n"
 #define MPU_PAPERJAM         (const char*)"#3\r\n"
+#define MPU_WEBTIMEOUT       (const char*)"#0\n"
 
 /* Function prototypes -------------------------------------------------------*/
 extern int main_app();

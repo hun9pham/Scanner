@@ -147,6 +147,10 @@ void TaskPollMPUIf() {
 		if (strcmp((const char*)MPU_IncomMsg.buf, MPU_CORMFIRM) == 0) {
 			task_post_pure_msg(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_PROCEDURE_CALL_RESP);
 		}
+		else if (strcmp((const char*)MPU_IncomMsg.buf, MPU_WEBTIMEOUT) == 0) {
+			/* Timeout from web */
+			task_post_pure_msg(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_REFRESH_WORKFLOW);
+		}
 		memset(&MPU_IncomMsg, 0, sizeof(MPU_IncomMsg_t));
 	}
 }

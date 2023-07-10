@@ -74,6 +74,8 @@ public:
     uint8_t getMotorRear() {
         return motor2State;
     }
+    bool isMotorFrontRunning();
+    bool isMotorRearRunning();
 };
 
 extern Engines ENGINES;
