@@ -42,40 +42,29 @@ extern Indicator LEDSTATUS;
 extern Indicator LEDDIR;
 extern Indicator LEDFAULT;
 
-enum eEngineState {
-    ENGINE_STANDSTILL = 0x00,
-    ENGINE_FORWARD,
-    ENGINE_BACKWARD,
-};
+typedef enum eEngineStatus {
+    STOPPING = 0x00,
+    SCROLLING,
+} EngineState_t;
 
-enum {
+typedef enum eMOTORS_Position {
     MOTOR_FRONT = 0,
     MOTOR_REAR,
-};
+    DUOMOTORS,
+} MOTORS_Pos_t;
 
 class Engines {
 private:
-    uint8_t motor1State;
-    uint8_t motor2State;
+    uint8_t MOTOR1_StateCtl;
+    uint8_t MOTOR2_StateCtl;
 
-    void standStill(uint8_t motorPos);
-    void rotateForward(uint8_t motorPos);
-    void rotateBackward(uint8_t motorPos);
 public:
     Engines();
     ~Engines();
     void initialize();
-    void setOperation(uint8_t oper);
-    void setMotorFront(uint8_t oper);
-    void setMotorRear(uint8_t oper);
-    uint8_t getMotorFront() {
-        return motor1State;
-    }
-    uint8_t getMotorRear() {
-        return motor2State;
-    }
-    bool isMotorFrontRunning();
-    bool isMotorRearRunning();
+    void setMOTORS(MOTORS_Pos_t MOTORS, EngineState_t state);
+    uint8_t readMOTORStateCtl(uint8_t MOTORS);
+    bool isRun(MOTORS_Pos_t MOTORS);
 };
 
 extern Engines ENGINES;

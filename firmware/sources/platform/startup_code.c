@@ -17,6 +17,7 @@
 #include "sys_ctl.h"
 
 #include "sys_dbg.h"
+#include "sys_log.h"
 
 /*-------------------------*/
 /* LINKER SCRIPT VARIABLES */
@@ -56,11 +57,13 @@ void PendSV_Handler()       	__attribute__ ((weak, alias("Default_Handler")));
 void SysTick_Handler();
 
 /* Interrupt function prototypes ----------------------------------------------*/
+void EXTI0_Handler();
 void EXTI1_Handler();
 void EXTI10_15_Handler();
 void TIM6_Handler();
 void TIM4_Handler();
 void TIM7_Handler();
+void TIM2_Handler();
 void TIM3_Handler();
 void USART1_Handler();
 void USART2_Handler();
@@ -94,7 +97,7 @@ void (* const isr_vector[])() = {
 	Default_Handler,						/*	RTC Wakeup 						*/
 	Default_Handler,						/*	FLASH 							*/
 	Default_Handler,						/*	RCC 							*/
-	Default_Handler,						/*	EXTI Line 0 					*/
+	EXTI0_Handler,							/*	EXTI Line 0 					*/
 	EXTI1_Handler,							/*	EXTI Line 1 					*/
 	Default_Handler,						/*	EXTI Line 2 					*/
 	Default_Handler,						/*	EXTI Line 3 					*/
@@ -116,9 +119,9 @@ void (* const isr_vector[])() = {
 	Default_Handler,						/*	TIM9 							*/
 	Default_Handler,						/*	TIM10 							*/
 	Default_Handler,						/*	TIM11 							*/
-	Default_Handler,						/*	TIM2 							*/
+	TIM2_Handler,							/*	TIM2 							*/
 	TIM3_Handler,							/*	TIM3 							*/
-	TIM4_Handler,							/*	TIM4 							*/
+	TIM4_Handler,							/*	TIM3 							*/
 	Default_Handler,						/*	I2C1 Event 						*/
 	Default_Handler,						/*	I2C1 Error 						*/
 	Default_Handler,						/*	I2C2 Event 						*/
@@ -245,7 +248,7 @@ void USART1_Handler() {
 		uartErr |= 8;
 	}
 	else {
-		if(USART_GetITStatus(UART_CONSOLE, USART_IT_RXNE) != RESET) {
+		if (USART_GetITStatus(UART_CONSOLE, USART_IT_RXNE) != RESET) {
 			uint8_t let = (uint8_t)USART_ReceiveData(UART_CONSOLE);
 			USART_SendData(UART_CONSOLE, let);
 
@@ -312,6 +315,13 @@ void EXTI1_Handler() {
 
 }
 
+void EXTI0_Handler() {
+	if (EXTI_GetITStatus(EXTI_Line0) != RESET) {
+		EXTI_ClearITPendingBit(EXTI_Line0);
+		// SYS_PRINT("EXTI0_Handler()\r\n");
+	}
+}
+
 void EXTI10_15_Handler() {
 
 }
@@ -332,8 +342,87 @@ void TIM4_Handler() {
 }
 
 /*----------------------------------------------------------------------------*/
-void TIM3_Handler() {
+#if 0
+uint16_t IC2ReadValue1 = 0, IC2ReadValue2 = 0;
+uint16_t IC2CaptureNumber = 0;
+uint32_t IC2Capture = 0;
+uint32_t TIM2Freq = 0;
+#endif
 
+void TIM2_Handler() {
+	if (TIM_GetITStatus(TIM2, TIM_IT_CC4) != RESET) {
+		TIM_ClearITPendingBit(TIM2, TIM_IT_CC4);
+		MOTOR2_EncoderInput = true;
+#if 0
+		if (IC2CaptureNumber == 0) {
+			/* Get the Input IC2Capture value */
+			IC2ReadValue1 = TIM_GetCapture4(TIM2);
+			IC2CaptureNumber = 1;
+		}
+		else if(IC2CaptureNumber == 1) {
+			/* Get the Input IC2Capture value */
+			IC2ReadValue2 = TIM_GetCapture4(TIM2); 
+			
+			/* IC2Capture computation */
+			if (IC2ReadValue2 > IC2ReadValue1) {
+				IC2Capture = (IC2ReadValue2 - IC2ReadValue1) - 1; 
+			}
+			else if (IC2ReadValue2 < IC2ReadValue1) {
+				IC2Capture = ((0xFFFF - IC2ReadValue1) + IC2ReadValue2) - 1; 
+			}
+			else {
+				IC2Capture = 0;
+			}
+			
+			/* Frequency computation */ 
+			TIM2Freq = (uint32_t) SystemCoreClock / IC2Capture;
+			IC2CaptureNumber = 0;
+			SYS_PRINT("TIM2Freq: %d\r\n", TIM2Freq);
+		}
+#endif
+	}
+}
+
+/*----------------------------------------------------------------------------*/
+#if 0
+uint16_t IC3ReadValue1 = 0, IC3ReadValue2 = 0;
+uint16_t IC3CaptureNumber = 0;
+uint32_t IC3Capture = 0;
+uint32_t TIM3Freq = 0;
+#endif
+
+void TIM3_Handler() {
+	if (TIM_GetITStatus(TIM3, TIM_IT_CC3) != RESET) {
+		TIM_ClearITPendingBit(TIM3, TIM_IT_CC3);
+		MOTOR1_EncoderInput = true;
+#if 0
+		if (IC3CaptureNumber == 0) {
+			/* Get the Input IC3Capture value */
+			IC3ReadValue1 = TIM_GetCapture3(TIM3);
+			IC3CaptureNumber = 1;
+		}
+		else if(IC3CaptureNumber == 1) {
+			/* Get the Input IC3Capture value */
+			IC3ReadValue2 = TIM_GetCapture3(TIM3); 
+			
+			/* IC3Capture computation */
+			if (IC3ReadValue2 > IC3ReadValue1) {
+				IC3Capture = (IC3ReadValue2 - IC3ReadValue1) - 1; 
+			}
+			else if (IC3ReadValue2 < IC3ReadValue1) {
+				IC3Capture = ((0xFFFF - IC3ReadValue1) + IC3ReadValue2) - 1; 
+			}
+			else {
+				IC3Capture = 0;
+			}
+			
+			/* Frequency computation */ 
+			TIM3Freq = (uint32_t) SystemCoreClock / IC3Capture;
+			IC3CaptureNumber = 0;
+			SYS_PRINT("TIM3Freq: %d\r\n", TIM3Freq);
+		}
+#endif
+	}
 }
 
 //==================================================================================//

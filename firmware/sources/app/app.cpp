@@ -38,12 +38,14 @@ static void app_task_init();
 
 /* Function implementation ---------------------------------------------------*/
 int main_app() {
+#if 0
 	APP_PRINT(KBLU"\n"
 			"    \\              | _)              |   _)             \n"
 			"   _ \\   _ \\  _ \\  |  |   _|   _` |   _|  |   _ \\    \\  \n"
 			" _/  _\\ .__/ .__/ _| _| \\__| \\__,_| \\__| _| \\___/ _| _| \n"
 			"       _|   _|                                          \n"
 			);
+#endif
 	APP_PRINT(KNRM"\n[APPLICATION] Welcome to my application\n");
 
 	/*---------------------------------------------------------------------*/
@@ -66,7 +68,25 @@ int main_app() {
 	buzzerInit();
 	MPUInterfaceInit();
 	inputsInit();
-	motorsPWMInit();
+	MOTOR1_EncoderPinoutInit();
+	MOTOR2_EncoderPinoutInit();
+
+#if 0 /* Unit test */
+	MOTORS_PWMInit();
+	LEDLIFE.initialize(ledLifeInit, ledLifeOn, ledLifeOff);
+	EXIT_CRITICAL();
+	// MOTOR1_SetPWM(0);
+	// MOTOR2_SetPWM(75);
+	uint32_t timStamp = millisTick();
+	while (1) {
+		if (millisTick() - timStamp > 1000) {
+			LEDLIFE.Blinking();
+			watchdogRst();
+			timStamp = millisTick();
+		}
+	}
+
+#endif
 
 	LEDLIFE.initialize(ledLifeInit, ledLifeOn, ledLifeOff);
 	LEDFLASH.initialize(ledFlashInit, ledFlashOn, ledFlashOff);
@@ -129,30 +149,26 @@ void app_task_init() {
 /*-------------------------------------------------------------------------------------------*/
 void TaskPollMPUIf() {
 	extern MPU_IncomMsg_t MPU_IncomMsg;
-	bool isMsgComming = false;
 	uint8_t data;
 
     while (!isRingBufferCharEmpty(&MPUInterfaceRx)) {
-		isMsgComming = true;
         ENTRY_CRITICAL();
         data = ringBufferCharGet(&MPUInterfaceRx);
         EXIT_CRITICAL();
+		APP_PRINT("[DATA] %d\r\n", data);
         
 		if (MPU_IncomMsg.ind < MAX_MPU_MSG_RECV_LEN) {
 			MPU_IncomMsg.buf[MPU_IncomMsg.ind++] = data;
 		}
-    }
-	if (isMsgComming) {
-		APP_DBG(TAG, "MPU Message: %s", MPU_IncomMsg.buf);
 		if (strcmp((const char*)MPU_IncomMsg.buf, MPU_CORMFIRM) == 0) {
 			task_post_pure_msg(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_PROCEDURE_CALL_RESP);
+			memset(&MPU_IncomMsg, 0, sizeof(MPU_IncomMsg_t));
 		}
 		else if (strcmp((const char*)MPU_IncomMsg.buf, MPU_WEBTIMEOUT) == 0) {
 			/* Timeout from web */
 			task_post_pure_msg(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_REFRESH_WORKFLOW);
 		}
-		memset(&MPU_IncomMsg, 0, sizeof(MPU_IncomMsg_t));
-	}
+    }
 }
 
 

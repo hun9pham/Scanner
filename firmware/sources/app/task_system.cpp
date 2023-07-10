@@ -43,7 +43,7 @@ void TaskSystem(ak_msg_t* msg) {
 	break;
 
 	case SL_SYSTEM_STARTUP: {
-		APP_DBG_SIG(TAG, "SL_SYSTEM_STARTUP\n");
+		APP_DBG_SIG(TAG, "SL_SYSTEM_STARTUP");
 
 		memset(&MPU_IncomMsg, 0, sizeof(MPU_IncomMsg_t));
 		LEDSTATUS.OnState();

@@ -87,19 +87,13 @@ extern "C"
 #define IO_MOTOR_C2B2_PIN                       ( GPIO_Pin_11 ) /* TIM2_CH4 */
 #define IO_MOTOR_C1A2_PIN                       ( GPIO_Pin_10 ) /* TIM2_CH3 */
 
-#define TIM_PWM_PERIOD_VAL                      (0)
-#define TIM_PWM_PRESCALER_VAL                   (0)
-#define TIM_PWM_ARR_LOAD_VAL                    (0)
-
 /* Enumarics -----------------------------------------------------------------*/
-typedef enum eMotorCtlStatus {
-    STOPPING = 0, /* Động cơ đứng yên */
-    ROTATE_RIGHT, /* Động cơ quay tiến */
-    ROTATE_LEFT, /* Động cơ quay lui */
-} MotorStateCtl_t;
 
 /* Extern variables ----------------------------------------------------------*/
 extern ringBufferChar_t MPUInterfaceRx;
+
+extern volatile bool MOTOR1_EncoderInput;
+extern volatile bool MOTOR2_EncoderInput;
 
 /* Function prototypes -------------------------------------------------------*/
 extern void ledLifeInit();
@@ -110,9 +104,9 @@ extern void ledFaultInit();
 extern void buzzerInit();
 extern void MPUInterfaceInit();
 extern void inputsInit();
-extern void motorsNorInit(); /* Normal control via set pin HIGH/LOW */
-extern void motorsPWMInit(); /* PWM Control */
-extern void encoderPinoutInit();
+extern void MOTORS_PWMInit(); /* PWM Control */
+extern void MOTOR1_EncoderPinoutInit();
+extern void MOTOR2_EncoderPinoutInit();
 
 extern void ledLifeOn();
 extern void ledLifeOff();
@@ -129,17 +123,17 @@ extern void ledDirToggle();
 extern void ledFaultOn();
 extern void ledFaultOff();
 extern void ledFaultToggle();
-extern void makeBeepSound();
+extern void makeBeepSound(uint16_t timDelay);
 extern uint8_t readInput1();
 extern uint8_t readInput2();
 extern uint8_t readInput3();
 extern uint8_t getMPUSerialIfData();
 extern void putMPUSerialIfData(uint8_t ch);
 extern void putMPUMessage(const char *str);
-extern void ctlMotor1State(MotorStateCtl_t state);
-extern void ctlMotor2State(MotorStateCtl_t state);
-extern void ctlMotor1PWM(MotorStateCtl_t state, uint8_t percent);
-extern void ctlMotor2PWM(MotorStateCtl_t state, uint8_t percent);
+extern void MOTOR1_SetPWM(uint8_t percent);
+extern void MOTOR2_SetPWM(uint8_t percent);
+extern bool MOTOR1_IsRun();
+extern bool MOTOR2_IsRun();
 
 #define readSensor1()     readInput1() /* Cảm biến số 1 (Ngoài cùng) */
 #define readSensor2()     readInput2() /* Cảm biến số 2 (Ngoài cùng) */

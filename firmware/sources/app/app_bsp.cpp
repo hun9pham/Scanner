@@ -10,6 +10,9 @@ Indicator LEDFAULT;
 
 Engines ENGINES;
 
+//////////////////////////////////////////////
+// Class INDICATOR
+//////////////////////////////////////////////
 Indicator::Indicator() {
 
 }
@@ -47,42 +50,14 @@ void Indicator::Blinking() {
     }
 }
 
-void Engines::standStill(uint8_t motorPos) {
-    if (motorPos == MOTOR_FRONT) {
-        this->motor1State = ENGINE_STANDSTILL;
-        ctlMotor1State(STOPPING);
-    }
-    else if (motorPos == MOTOR_REAR) {
-        this->motor2State = ENGINE_STANDSTILL;
-        ctlMotor2State(STOPPING);
-    }
-}
-
-void Engines::rotateForward(uint8_t motorPos) {
-    if (motorPos == MOTOR_FRONT) {
-        this->motor1State = ENGINE_FORWARD;
-        ctlMotor1State(ROTATE_LEFT);
-    }
-    else if (motorPos == MOTOR_REAR) {
-        this->motor2State = ENGINE_FORWARD;
-        ctlMotor2State(ROTATE_LEFT);
-    }
-}
-
-void Engines::rotateBackward(uint8_t motorPos) {
-    if (motorPos == MOTOR_FRONT) {
-        this->motor1State = ENGINE_BACKWARD;
-        ctlMotor1State(ROTATE_RIGHT);
-    }
-    else if (motorPos == MOTOR_REAR) {
-        this->motor2State = ENGINE_BACKWARD;
-        ctlMotor2State(ROTATE_RIGHT);
-    }
-}
+//////////////////////////////////////////////
+// Class ENGINES
+//////////////////////////////////////////////
+#define MOTOR1_PWM_PERCENT  (70)
+#define MOTOR2_PWM_PERCENT  (95)
 
 Engines::Engines() {
-    this->motor1State = ENGINE_STANDSTILL;
-    this->motor2State = ENGINE_STANDSTILL;
+    
 }
 
 Engines::~Engines() {
@@ -90,68 +65,52 @@ Engines::~Engines() {
 }
 
 void Engines::initialize() {
-    motorsNorInit();
+    MOTORS_PWMInit();
+    this->MOTOR1_StateCtl = STOPPING;
+    this->MOTOR2_StateCtl = STOPPING;
 }
 
-void Engines::setOperation(uint8_t oper) {
-    switch (oper) {
-    case ENGINE_STANDSTILL: {
-        standStill(MOTOR_FRONT);
-        standStill(MOTOR_REAR);
+void Engines::setMOTORS(MOTORS_Pos_t MOTORS, EngineState_t state) {
+    if (MOTORS == MOTOR_FRONT) {
+        if (state == STOPPING) {
+            this->MOTOR1_StateCtl = STOPPING;
+            MOTOR1_SetPWM(0);
+        }
+        else {
+            this->MOTOR1_StateCtl = SCROLLING;
+            MOTOR1_SetPWM(MOTOR1_PWM_PERCENT);
+        }
     }
-    break;
-    case ENGINE_FORWARD: {
-        rotateForward(MOTOR_FRONT);
-        rotateForward(MOTOR_REAR);
+    else if (MOTORS == MOTOR_REAR) {
+        if (state == STOPPING) {
+            this->MOTOR2_StateCtl = STOPPING;
+            MOTOR2_SetPWM(0);
+        }
+        else {
+            this->MOTOR2_StateCtl = SCROLLING;
+            MOTOR2_SetPWM(MOTOR2_PWM_PERCENT);
+        }
     }
-    break;
-    case ENGINE_BACKWARD: {
-        rotateBackward(MOTOR_FRONT);
-        rotateBackward(MOTOR_REAR);
-    }
-    break;
-    default:
-    break;
-    }
-}
-
-void Engines::setMotorFront(uint8_t oper) {
-    switch (oper) {
-    case ENGINE_STANDSTILL: standStill(MOTOR_FRONT);
-    break;
-    case ENGINE_FORWARD: rotateForward(MOTOR_FRONT);
-    break;
-    case ENGINE_BACKWARD: rotateBackward(MOTOR_FRONT);
-    break;
-    default:
-    break;
-    }
-}
-
-void Engines::setMotorRear(uint8_t oper) {
-    switch (oper) {
-    case ENGINE_STANDSTILL: standStill(MOTOR_REAR);
-    break;
-    case ENGINE_FORWARD: rotateForward(MOTOR_REAR);
-    break;
-    case ENGINE_BACKWARD: rotateBackward(MOTOR_REAR);
-    break;
-    default:
-    break;
+    else if (MOTORS == DUOMOTORS) {
+        if (state == STOPPING) {
+            this->MOTOR1_StateCtl = STOPPING;
+            this->MOTOR2_StateCtl = STOPPING;
+            MOTOR1_SetPWM(0);
+            MOTOR2_SetPWM(0);
+        }
+        else {
+            this->MOTOR1_StateCtl = SCROLLING;
+            this->MOTOR2_StateCtl = SCROLLING;
+            MOTOR1_SetPWM(MOTOR1_PWM_PERCENT);
+            MOTOR2_SetPWM(MOTOR2_PWM_PERCENT);
+        }
     }
 }
-bool Engines::isMotorFrontRunning() {
-    bool ret = false;
 
-    // TODO: Read encoder PWM
-
-    return ret;
+uint8_t Engines::readMOTORStateCtl(uint8_t MOTORS) {
+    return ((MOTORS == MOTOR_FRONT) ? this->MOTOR1_StateCtl : this->MOTOR2_StateCtl);
 }
 
-bool Engines::isMotorRearRunning() {
-    bool ret = false;
-
-    // TODO: Read encoder PWM
-
-    return ret;
+bool Engines::isRun(MOTORS_Pos_t MOTORS) {
+    return ((MOTORS == MOTOR_FRONT) ? MOTOR1_IsRun() : MOTOR2_IsRun());
 }

@@ -224,29 +224,24 @@ int8_t csDbg(uint8_t *argv) {
 			LEDFAULT.Blinking();
 			delayMillis(100);
 		}
-		makeBeepSound();
 		APP_DBG(TAG, "[STOP] Blink all LEDs");
 	}
 	break;
 
 	case 'b': {
 		APP_DBG(TAG, "[START] Motor front test in 2s");
-		ENGINES.setMotorFront(ENGINE_FORWARD);
+		ENGINES.setMOTORS(MOTOR_FRONT, SCROLLING);
 		delayMillis(2000);
-		ENGINES.setMotorFront(ENGINE_BACKWARD);
-		delayMillis(2000);
-		ENGINES.setMotorFront(ENGINE_STANDSTILL);
+		ENGINES.setMOTORS(MOTOR_FRONT, STOPPING);
 		APP_DBG(TAG, "[STOP] Motor front test in 2s");
 	}
 	break;
 
 	case 'c': {
 		APP_DBG(TAG, "[START] Motor rear test in 2s");
-		ENGINES.setMotorRear(ENGINE_FORWARD);
+		ENGINES.setMOTORS(MOTOR_REAR, SCROLLING);
 		delayMillis(2000);
-		ENGINES.setMotorRear(ENGINE_BACKWARD);
-		delayMillis(2000);
-		ENGINES.setMotorRear(ENGINE_STANDSTILL);
+		ENGINES.setMOTORS(MOTOR_REAR, STOPPING);
 		APP_DBG(TAG, "[STOP] Motor rear test in 2s");
 	}
 	break;
@@ -254,12 +249,31 @@ int8_t csDbg(uint8_t *argv) {
 	case 'd': {
 		APP_DBG(TAG, "[START] Read inputs in 5s");
 		uint32_t now = millisTick();
-		while (millisTick() - now > 5000) {
-			APP_PRINT("->Input[1] active %d\r\n", readInput1());
-			APP_PRINT("->Input[2] active %d\r\n", readInput2());
-			APP_PRINT("->Input[3] active %d\r\n", readInput3());
+		while (millisTick() - now < 5000) {
+			if (readInput1() == 0) {
+				APP_PRINT("->Input[1] active 0\r\n");
+			}
+			if (readInput2() == 0) {
+				APP_PRINT("->Input[2] active 0\r\n");
+			}
+			if (readInput3() == 0) {
+				APP_PRINT("->Input[3] active 0\r\n");
+			}
+			watchdogRst();
 		}
 		APP_DBG(TAG, "[STOP] Read inputs in 5s");
+	}
+	break;
+
+	case 'e': {
+		APP_DBG(TAG, "[DBG] Send \'Hello world\' to MPU");
+		const char *testStr = (const char*)"Hello world\r\n";
+		putMPUMessage(testStr);
+	}
+	break;
+
+	case 'f': {
+		
 	}
 	break;
 
