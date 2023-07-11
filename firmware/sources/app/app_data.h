@@ -29,6 +29,7 @@ typedef struct t_MPU_IncomeMsg{
 /* Extern variables ----------------------------------------------------------*/
 extern DevMngCtlStage_t devStagePolling;
 extern MPU_IncomMsg_t MPU_IncomMsg;
+extern uint32_t calibDelayScroll;
 
 /* Function prototypes -------------------------------------------------------*/
 

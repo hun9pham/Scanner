@@ -88,12 +88,25 @@ extern "C"
 #define IO_MOTOR_C1A2_PIN                       ( GPIO_Pin_10 ) /* TIM2_CH3 */
 
 /* Enumarics -----------------------------------------------------------------*/
+enum eMOTORS_StateCtl {
+    STOP,
+    SCROLLFORWARD,
+    SCROLLBACKWARD,
+};
 
 /* Extern variables ----------------------------------------------------------*/
 extern ringBufferChar_t MPUInterfaceRx;
 
-extern volatile bool MOTOR1_EncoderInput;
-extern volatile bool MOTOR2_EncoderInput;
+/* Read encoder pulse when motors running */
+extern volatile bool MOTOR1_EncoderPulse;
+extern volatile bool MOTOR2_EncoderPulse;
+
+extern volatile bool SENSOR1_DectecShortPaper;
+extern volatile bool SENSOR2_OutOfPaper;
+
+extern volatile uint8_t EXTI5_EnableDetectOutOfPaper;
+extern volatile uint8_t EXTI6_EnableDetectFirstStopScroll;
+extern volatile uint8_t EXTI4_EnableDetectShortPaper;
 
 /* Function prototypes -------------------------------------------------------*/
 extern void ledLifeInit();
@@ -104,7 +117,7 @@ extern void ledFaultInit();
 extern void buzzerInit();
 extern void MPUInterfaceInit();
 extern void inputsInit();
-extern void MOTORS_PWMInit(); /* PWM Control */
+extern void MOTORS_CtlInit();
 extern void MOTOR1_EncoderPinoutInit();
 extern void MOTOR2_EncoderPinoutInit();
 
@@ -130,10 +143,12 @@ extern uint8_t readInput3();
 extern uint8_t getMPUSerialIfData();
 extern void putMPUSerialIfData(uint8_t ch);
 extern void putMPUMessage(const char *str);
-extern void MOTOR1_SetPWM(uint8_t percent);
-extern void MOTOR2_SetPWM(uint8_t percent);
+extern void MOTOR1_SetPWM(uint8_t stateCtl);
+extern void MOTOR2_SetPWM(uint8_t stateCtl);
 extern bool MOTOR1_IsRun();
 extern bool MOTOR2_IsRun();
+extern void enableEXTI(volatile uint8_t *EXTI_Enable);
+extern void disableEXTI(volatile uint8_t *EXTI_Enable);
 
 #define readSensor1()     readInput1() /* Cảm biến số 1 (Ngoài cùng) */
 #define readSensor2()     readInput2() /* Cảm biến số 2 (Ngoài cùng) */

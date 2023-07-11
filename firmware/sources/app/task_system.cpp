@@ -42,12 +42,33 @@ void TaskSystem(ak_msg_t* msg) {
 	}
 	break;
 
-	case SL_SYSTEM_STARTUP: {
-		APP_DBG_SIG(TAG, "SL_SYSTEM_STARTUP");
+	case SL_SYSTEM_ENTRY_WORKFLOW_REQ: {
+		APP_DBG_SIG(TAG, "SL_SYSTEM_ENTRY_WORKFLOW_REQ");
 
-		memset(&MPU_IncomMsg, 0, sizeof(MPU_IncomMsg_t));
+		LEDFLASH.OffState();
+		LEDDIR.OffState();
+		LEDFAULT.OffState();
+		ENGINES.setMOTORS(DUOMOTORS, STOPPING);
+		disableEXTI(&EXTI6_EnableDetectFirstStopScroll);
+		disableEXTI(&EXTI5_EnableDetectOutOfPaper);
+		disableEXTI(&EXTI4_EnableDetectShortPaper);
+		task_polling_set_ability(SL_TASK_POLL_DEVMANAGER_ID, AK_ENABLE);
+		devStagePolling = STAGE_1ST;
+	}
+	break;
+
+	case SL_SYSTEM_ENTRY_IDLING: {
+		APP_DBG_SIG(TAG, "SL_SYSTEM_ENTRY_IDLING");
+
 		LEDSTATUS.OnState();
-		putMPUMessage(MPU_NOTIFYLOGIN);
+		LEDFLASH.OffState();
+		LEDDIR.OffState();
+		LEDFAULT.OffState();
+		disableEXTI(&EXTI6_EnableDetectFirstStopScroll);
+		disableEXTI(&EXTI5_EnableDetectOutOfPaper);
+		disableEXTI(&EXTI4_EnableDetectShortPaper);
+		ENGINES.setMOTORS(DUOMOTORS, STOPPING);
+		task_polling_set_ability(SL_TASK_POLL_DEVMANAGER_ID, AK_DISABLE);
 		task_post_pure_msg(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_REFRESH_WORKFLOW);
 	}
 	break;

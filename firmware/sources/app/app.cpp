@@ -13,10 +13,9 @@
 #include "app_data.h"
 #include "app_bsp.h"
 #include "task_list.h"
-#include "task_if.h"
-#include "task_cpu_serial_if.h"
 #include "task_deviceManager.h"
 #include "task_console.h"
+#include "task_system.h"
 
 #include "io_cfg.h"
 #include "sys_cfg.h"
@@ -71,23 +70,6 @@ int main_app() {
 	MOTOR1_EncoderPinoutInit();
 	MOTOR2_EncoderPinoutInit();
 
-#if 0 /* Unit test */
-	MOTORS_PWMInit();
-	LEDLIFE.initialize(ledLifeInit, ledLifeOn, ledLifeOff);
-	EXIT_CRITICAL();
-	// MOTOR1_SetPWM(0);
-	// MOTOR2_SetPWM(75);
-	uint32_t timStamp = millisTick();
-	while (1) {
-		if (millisTick() - timStamp > 1000) {
-			LEDLIFE.Blinking();
-			watchdogRst();
-			timStamp = millisTick();
-		}
-	}
-
-#endif
-
 	LEDLIFE.initialize(ledLifeInit, ledLifeOn, ledLifeOff);
 	LEDFLASH.initialize(ledFlashInit, ledFlashOn, ledFlashOff);
 	LEDSTATUS.initialize(ledStatusInit, ledStatusOn, ledStatusOff);
@@ -125,7 +107,6 @@ int main_app() {
  ---------------------------------------*/
 void app_start_timer() {
     timer_set(SL_TASK_SYSTEM_ID, SL_SYSTEM_ALIVE_NOTIFY, SL_SYSTEM_ALIVE_NOTIFY_INTERVAL, TIMER_PERIODIC);
-	timer_set(SL_TASK_SYSTEM_ID, SL_SYSTEM_STARTUP, SL_SYSTEM_STARTUP_INTERVAL, TIMER_ONE_SHOT);
 }
 
 /*---------------------------------------
@@ -133,7 +114,7 @@ void app_start_timer() {
  * used for app tasks
  ---------------------------------------*/
 void app_init_state_machine() {
-	
+	task_post_pure_msg(SL_TASK_SYSTEM_ID, SL_SYSTEM_ENTRY_IDLING);
 }
 
 /*---------------------------------------------
@@ -141,9 +122,7 @@ void app_init_state_machine() {
  * used for app tasks
  ---------------------------------------------*/
 void app_task_init() {
-#if MPU_SERIAL_INTEFACE_EN
-	task_post_pure_msg(SL_TASK_CPU_SERIAL_IF_ID, SL_CPU_SERIAL_IF_INIT);
-#endif
+
 }
 
 /*-------------------------------------------------------------------------------------------*/
@@ -155,10 +134,12 @@ void TaskPollMPUIf() {
         ENTRY_CRITICAL();
         data = ringBufferCharGet(&MPUInterfaceRx);
         EXIT_CRITICAL();
-		APP_PRINT("[DATA] %d\r\n", data);
         
 		if (MPU_IncomMsg.ind < MAX_MPU_MSG_RECV_LEN) {
 			MPU_IncomMsg.buf[MPU_IncomMsg.ind++] = data;
+		}
+		else {
+			memset(&MPU_IncomMsg, 0, sizeof(MPU_IncomMsg_t));
 		}
 		if (strcmp((const char*)MPU_IncomMsg.buf, MPU_CORMFIRM) == 0) {
 			task_post_pure_msg(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_PROCEDURE_CALL_RESP);
@@ -166,7 +147,12 @@ void TaskPollMPUIf() {
 		}
 		else if (strcmp((const char*)MPU_IncomMsg.buf, MPU_WEBTIMEOUT) == 0) {
 			/* Timeout from web */
-			task_post_pure_msg(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_REFRESH_WORKFLOW);
+			task_post_pure_msg(SL_TASK_SYSTEM_ID, SL_SYSTEM_ENTRY_IDLING);
+			memset(&MPU_IncomMsg, 0, sizeof(MPU_IncomMsg_t));
+		}
+		else if (strcmp((const char*)MPU_IncomMsg.buf, MPU_NOTIFYLOGIN) == 0) {
+			task_post_pure_msg(SL_TASK_SYSTEM_ID, SL_SYSTEM_ENTRY_WORKFLOW_REQ);
+			memset(&MPU_IncomMsg, 0, sizeof(MPU_IncomMsg_t));
 		}
     }
 }

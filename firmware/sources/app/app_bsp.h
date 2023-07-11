@@ -44,7 +44,8 @@ extern Indicator LEDFAULT;
 
 typedef enum eEngineStatus {
     STOPPING = 0x00,
-    SCROLLING,
+    SCROLL_FORDWARD,
+    SCROLL_BACKWARD,
 } EngineState_t;
 
 typedef enum eMOTORS_Position {

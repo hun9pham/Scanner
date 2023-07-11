@@ -20,14 +20,6 @@ enum {
 	SL_TASK_CONSOLE_ID,
 	SL_TASK_DEVMANAGER_ID,
 	SL_TASK_SENSOR_ID,
-
-#if MPU_SERIAL_INTEFACE_EN
-	SL_TASK_IF_ID,
-	SL_TASK_CPU_SERIAL_IF_ID,
-	SL_LINK_PHY_ID,
-	SL_LINK_MAC_ID,
-	SL_LINK_ID,
-#endif
 	SL_TASK_EOT_ID,
 };
 
@@ -37,10 +29,7 @@ enum {
  *---------------------------------------------------------------------------*/
 enum {
 	SL_TASK_POLL_CONSOLE_ID,
-#if MPU_SERIAL_INTEFACE_EN
-	SL_TASK_POLL_SERIAL_IF_ID,
-#endif
-	SL_TAKS_POLL_DEVMANAGER_ID,
+	SL_TASK_POLL_DEVMANAGER_ID,
 	SL_TAKS_POLL_MPU_IF_ID,
 	SL_TASK_POLLING_EOT_ID,
 };
@@ -54,22 +43,11 @@ extern void TaskConsole(ak_msg_t *);
 extern void TaskDeviceManager(ak_msg_t *);
 extern void TaskSensor(ak_msg_t *);
 
-#if MPU_SERIAL_INTEFACE_EN
-extern void TaskCpuSerialIf(ak_msg_t *);
-extern void TaskIf(ak_msg_t *);
-extern void TaskLinkPhy(ak_msg_t *);
-extern void TaskLinkMac(ak_msg_t *);
-extern void TaskLink(ak_msg_t *);
-#endif
-
 /*----------------------------------------------------------------------------
  *  DECLARE: Task polling
  *  
  *---------------------------------------------------------------------------*/
 extern void TaskPollConsole(void);
-#if MPU_SERIAL_INTEFACE_EN
-extern void TaskPollSerialIf(void);
-#endif
 extern void TaskPollDevManager(void);
 extern void TaskPollMPUIf(void);
 

@@ -9,8 +9,15 @@
 ringBufferChar_t MPUInterfaceRx;
 static uint8_t MPUInterfaceRxBuf[UART_MPU_IF_BUFFER_SIZE];
 
-volatile bool MOTOR1_EncoderInput = false;
-volatile bool MOTOR2_EncoderInput = false;
+volatile bool MOTOR1_EncoderPulse = false;
+volatile bool MOTOR2_EncoderPulse = false;
+
+volatile bool SENSOR2_OutOfPaper = false;
+volatile bool SENSOR1_DectecShortPaper = false;
+
+volatile uint8_t EXTI5_EnableDetectOutOfPaper = false;
+volatile uint8_t EXTI6_EnableDetectFirstStopScroll = false;
+volatile uint8_t EXTI4_EnableDetectShortPaper = false;
 
 void ledLifeInit() {
 	GPIO_InitTypeDef GPIO_InitStructure;
@@ -213,12 +220,58 @@ void putMPUMessage(const char *str) {
 
 void inputsInit() {
 	GPIO_InitTypeDef GPIO_InitStructure;
+	EXTI_InitTypeDef EXTI_InitStructure;
+	NVIC_InitTypeDef NVIC_InitStructure;
 
 	RCC_AHBPeriphClockCmd(IO_INPUTn_CLOCK, ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
+
 	GPIO_InitStructure.GPIO_Pin = IO_INPUT1_PIN | IO_INPUT2_PIN | IO_INPUT3_PIN;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
 	GPIO_Init(IO_INPUTn_PORT, &GPIO_InitStructure);
+
+	SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOA, EXTI_PinSource4);
+	SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOA, EXTI_PinSource5);
+	SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOA, EXTI_PinSource6);
+
+	/* Common EXTI Configuration */
+	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
+	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
+
+	/* Trigger via RISING */
+	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;
+	EXTI_InitStructure.EXTI_Line = EXTI_Line4;
+	EXTI_Init(&EXTI_InitStructure);
+	EXTI_InitStructure.EXTI_Line = EXTI_Line5;
+	EXTI_Init(&EXTI_InitStructure);
+
+	/* Trigger via FALLING */
+	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Falling;
+	EXTI_InitStructure.EXTI_Line = EXTI_Line6;
+	EXTI_Init(&EXTI_InitStructure);
+
+	/* Common NVIC Configuration */
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0xFF;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x00;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+
+	NVIC_InitStructure.NVIC_IRQChannel = EXTI9_5_IRQn;
+	NVIC_Init(&NVIC_InitStructure);
+	NVIC_InitStructure.NVIC_IRQChannel = EXTI4_IRQn;
+	NVIC_Init(&NVIC_InitStructure);
+}
+
+void enableEXTI(volatile uint8_t *EXTI_Enable) {
+	ENTRY_CRITICAL();
+	*EXTI_Enable = 1;
+	EXIT_CRITICAL();
+}
+
+void disableEXTI(volatile uint8_t *EXTI_Enable) {
+	ENTRY_CRITICAL();
+	*EXTI_Enable = 0;
+	EXIT_CRITICAL();
 }
 
 uint8_t readInput1() {
@@ -233,87 +286,76 @@ uint8_t readInput3() {
 	return GPIO_ReadInputDataBit(IO_INPUTn_PORT, IO_INPUT3_PIN);
 }
 
-#define TIM_PWM_PERIOD_VAL                      (2000)
-#define TIM_PWM_PRESCALER_VAL                   (SystemCoreClock / 32000)
-#define TIM_PWM_ARR_LOAD_VAL                    (0)
-
-static void timPWMConfigure() {
-	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
-	TIM_OCInitTypeDef TIM_OCInitStructure;
-
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM10, ENABLE);
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM11, ENABLE);
-
-	/* Base configuration */
-	TIM_TimeBaseStructure.TIM_Period = TIM_PWM_PERIOD_VAL;
-	TIM_TimeBaseStructure.TIM_Prescaler = TIM_PWM_PRESCALER_VAL - 1;
-	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
-	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseInit(TIM10, &TIM_TimeBaseStructure);
-	TIM_TimeBaseInit(TIM11, &TIM_TimeBaseStructure);
-	
-	/* TIM10 Channel 1 */
-	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
-	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
-	TIM_OCInitStructure.TIM_Pulse = TIM_PWM_ARR_LOAD_VAL;
-	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
-	TIM_OC1Init(TIM10, &TIM_OCInitStructure);
-	TIM_OC1PreloadConfig(TIM10, TIM_OCPreload_Enable);
-	/* TIM11 Channel 1 */
-	TIM_OC1Init(TIM11, &TIM_OCInitStructure);
-	TIM_OC1PreloadConfig(TIM11, TIM_OCPreload_Enable);
-
-	TIM_ARRPreloadConfig(TIM10, ENABLE);
-	TIM_ARRPreloadConfig(TIM11, ENABLE);
-	TIM_Cmd(TIM10, ENABLE);
-	TIM_Cmd(TIM11, ENABLE);
-}
-
-void MOTORS_PWMInit() {
+void MOTORS_CtlInit() {
 	GPIO_InitTypeDef GPIO_InitStructure;
 
 	RCC_AHBPeriphClockCmd(IO_MOTOR_PWM_CLOCK, ENABLE);
 
-	/* H Brigde -> PWM1L & PWM2R always LOW */
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
 	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_40MHz;
 	
 	/* MOTOR 1 */
-	GPIO_InitStructure.GPIO_Pin = IO_MOTOR_PWM1L_PIN;
+	GPIO_InitStructure.GPIO_Pin = IO_MOTOR_PWM1L_PIN | IO_MOTOR_PWM1R_PIN;
 	GPIO_Init(IO_MOTOR_PWM_PORT, &GPIO_InitStructure);
 	/* MOTOR 2 */
-	GPIO_InitStructure.GPIO_Pin = IO_MOTOR_PWM2R_PIN;
+	GPIO_InitStructure.GPIO_Pin = IO_MOTOR_PWM2R_PIN | IO_MOTOR_PWM2L_PIN;
 	GPIO_Init(IO_MOTOR_PWM_PORT, &GPIO_InitStructure);
 
-	/* IO PWM Configuration */
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
-	
-	/* Engine 1 */
-	GPIO_InitStructure.GPIO_Pin = IO_MOTOR_PWM1R_PIN;
-	GPIO_Init(IO_MOTOR_PWM_PORT, &GPIO_InitStructure);
-	GPIO_PinAFConfig(IO_MOTOR_PWM_PORT, GPIO_PinSource15, GPIO_AF_TIM11);
-	/* Engine 2 */
-	GPIO_InitStructure.GPIO_Pin = IO_MOTOR_PWM2L_PIN;
-	GPIO_Init(IO_MOTOR_PWM_PORT, &GPIO_InitStructure);
-	GPIO_PinAFConfig(IO_MOTOR_PWM_PORT, GPIO_PinSource12, GPIO_AF_TIM10);
-
-	timPWMConfigure();
-
+	GPIO_ResetBits(IO_MOTOR_PWM_PORT, IO_MOTOR_PWM1R_PIN);
+	GPIO_ResetBits(IO_MOTOR_PWM_PORT, IO_MOTOR_PWM2L_PIN);
 	GPIO_ResetBits(IO_MOTOR_PWM_PORT, IO_MOTOR_PWM1L_PIN);
 	GPIO_ResetBits(IO_MOTOR_PWM_PORT, IO_MOTOR_PWM2R_PIN);
 }
 
-void MOTOR1_SetPWM(uint8_t percent) {
-	/* TIMx Channel1 duty cycle = (TIMx_CCRx/ TIMx_ARR)* 100 = 50% */
-	uint32_t valLoad = ((TIM_PWM_PERIOD_VAL * percent) / 100);
-	TIM_SetCompare1(TIM11, valLoad);
+void MOTOR1_SetPWM(uint8_t stateCtl) {
+	switch (stateCtl) {
+	case STOP: {
+		GPIO_ResetBits(IO_MOTOR_PWM_PORT, IO_MOTOR_PWM1R_PIN);
+		GPIO_ResetBits(IO_MOTOR_PWM_PORT, IO_MOTOR_PWM1L_PIN);
+	}
+	break;
+
+	case SCROLLFORWARD: {
+		GPIO_SetBits(IO_MOTOR_PWM_PORT, IO_MOTOR_PWM1R_PIN);
+		GPIO_ResetBits(IO_MOTOR_PWM_PORT, IO_MOTOR_PWM1L_PIN);
+	}
+	break;
+
+	case SCROLLBACKWARD: {
+		GPIO_ResetBits(IO_MOTOR_PWM_PORT, IO_MOTOR_PWM1R_PIN);
+		GPIO_SetBits(IO_MOTOR_PWM_PORT, IO_MOTOR_PWM1L_PIN);
+	}
+	break;
+	
+	default:
+	break;
+	}
 }
 
-void MOTOR2_SetPWM(uint8_t percent) {
-	/* TIMx Channel1 duty cycle = (TIMx_CCRx/ TIMx_ARR)* 100 = 50% */
-	uint32_t valLoad = ((TIM_PWM_PERIOD_VAL * percent) / 100);
-	TIM_SetCompare1(TIM10, valLoad);
+void MOTOR2_SetPWM(uint8_t stateCtl) {
+	switch (stateCtl) {
+	case STOP: {
+		GPIO_ResetBits(IO_MOTOR_PWM_PORT, IO_MOTOR_PWM2R_PIN);
+		GPIO_ResetBits(IO_MOTOR_PWM_PORT, IO_MOTOR_PWM2L_PIN);
+	}
+	break;
+
+	case SCROLLFORWARD: {
+		GPIO_ResetBits(IO_MOTOR_PWM_PORT, IO_MOTOR_PWM2R_PIN);
+		GPIO_SetBits(IO_MOTOR_PWM_PORT, IO_MOTOR_PWM2L_PIN);
+	}
+	break;
+
+	case SCROLLBACKWARD: {
+		GPIO_SetBits(IO_MOTOR_PWM_PORT, IO_MOTOR_PWM2R_PIN);
+		GPIO_ResetBits(IO_MOTOR_PWM_PORT, IO_MOTOR_PWM2L_PIN);
+	}
+	break;
+	
+	default:
+	break;
+	}
 }
 
 void MOTOR1_EncoderPinoutInit() {
@@ -386,16 +428,16 @@ void MOTOR2_EncoderPinoutInit() {
 
 bool MOTOR1_IsRun() {
 	ENTRY_CRITICAL();
-	bool ret = MOTOR1_EncoderInput;
-	MOTOR1_EncoderInput = false;
+	bool ret = MOTOR1_EncoderPulse;
+	MOTOR1_EncoderPulse = false;
 	EXIT_CRITICAL();
 	return ret;
 }
 
 bool MOTOR2_IsRun() {
 	ENTRY_CRITICAL();
-	bool ret = MOTOR2_EncoderInput;
-	MOTOR2_EncoderInput = false;
+	bool ret = MOTOR2_EncoderPulse;
+	MOTOR2_EncoderPulse = false;
 	EXIT_CRITICAL();
 	return ret;
 }

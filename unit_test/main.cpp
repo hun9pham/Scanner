@@ -27,6 +27,7 @@ int main() {
 
 	int fd = open("/dev/ttyUSB1", O_RDWR | O_NOCTTY | O_NDELAY);
 	if (fd < 0) {
+		printf("Can't open \'/dev/ttyUSB1\'\r\n");
 		exit(EXIT_FAILURE);
 	}
 	else {
@@ -55,43 +56,38 @@ int main() {
 		}
     }
 
-	static uint8_t buf[32];
-	static uint32_t len;
-	string strMaster = "";
+	uint8_t buf[32];
+	uint32_t len;
+	string IncomMsg = "";
+
+	write(fd, MPU_NOTIFYLOGIN, strlen(MPU_NOTIFYLOGIN));
 
 	while (1) {
 		memset(buf, 0, 32);
 		len = read(fd, buf, 32);
 		if (len != -1) {
-
 			for (uint8_t id = 0; id < len; ++id) {
-				strMaster += buf[id];
+				IncomMsg += buf[id];
 				printf("[DATA] %d\r\n", buf[id]);
 			}
-			if (strMaster.compare(string(MPU_REQSCREENSHOT)) == 0) {
+			if (IncomMsg.compare(string(MPU_REQSCREENSHOT)) == 0) {
 				usleep(1000000);
-				printf("strMaster: %s\r\n", strMaster.c_str());
+				printf("[CORMFIRM] Message: %s\r\n", IncomMsg.c_str());
 				int ret = write(fd, MPU_CORMFIRM, strlen(MPU_CORMFIRM));
-				printf("ret: %d\r\n", ret);
-				strMaster.clear();
+				IncomMsg.clear();
 			}
-			else if (strMaster.compare(string(MPU_OUTOFPAPPER)) == 0) {
-				printf("strMaster: %s\r\n", strMaster.c_str());
-				strMaster.clear();
+			else if (IncomMsg.compare(string(MPU_OUTOFPAPPER)) == 0) {
+				printf("[OUTOFPAPPER] Message: %s\r\n", IncomMsg.c_str());
+				IncomMsg.clear();
 			}
-			else if (strMaster.compare(string(MPU_PAPERJAM)) == 0) {
-				printf("strMaster: %s\r\n", strMaster.c_str());
-				strMaster.clear();
+			else if (IncomMsg.compare(string(MPU_PAPERJAM)) == 0) {
+				printf("[PAPERJAM] Message: %s\r\n", IncomMsg.c_str());
+				IncomMsg.clear();
 			}
-			else if (strMaster.compare(string(MPU_NOTIFYLOGIN)) == 0) {
-				printf("strMaster: %s\r\n", strMaster.c_str());
-				strMaster.clear();
-			}
-			else if (strMaster.compare(string("Hello world\r\n")) == 0) {
-				printf("strMaster: %s\r\n", strMaster.c_str());
+			else if (IncomMsg.compare(string("Hello world\r\n")) == 0) {
+				printf("Message: %s\r\n", IncomMsg.c_str());
 				int ret = write(fd, MPU_CORMFIRM, strlen(MPU_CORMFIRM));
-				printf("ret: %d\r\n", ret);
-				strMaster.clear();
+				IncomMsg.clear();
 			}
 		}
 	}

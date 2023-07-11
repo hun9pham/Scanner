@@ -230,7 +230,7 @@ int8_t csDbg(uint8_t *argv) {
 
 	case 'b': {
 		APP_DBG(TAG, "[START] Motor front test in 2s");
-		ENGINES.setMOTORS(MOTOR_FRONT, SCROLLING);
+		ENGINES.setMOTORS(MOTOR_FRONT, SCROLL_FORDWARD);
 		delayMillis(2000);
 		ENGINES.setMOTORS(MOTOR_FRONT, STOPPING);
 		APP_DBG(TAG, "[STOP] Motor front test in 2s");
@@ -239,7 +239,7 @@ int8_t csDbg(uint8_t *argv) {
 
 	case 'c': {
 		APP_DBG(TAG, "[START] Motor rear test in 2s");
-		ENGINES.setMOTORS(MOTOR_REAR, SCROLLING);
+		ENGINES.setMOTORS(MOTOR_REAR, SCROLL_FORDWARD);
 		delayMillis(2000);
 		ENGINES.setMOTORS(MOTOR_REAR, STOPPING);
 		APP_DBG(TAG, "[STOP] Motor rear test in 2s");
@@ -273,7 +273,11 @@ int8_t csDbg(uint8_t *argv) {
 	break;
 
 	case 'f': {
-		
+		extern uint32_t calibDelayScroll;
+		char *pt = (char*)(argv + 6);
+		uint32_t delayCalib = atoi(pt);
+		APP_PRINT("Set delay scrolling: %d", delayCalib);
+		calibDelayScroll = delayCalib;
 	}
 	break;
 
@@ -285,7 +289,8 @@ int8_t csDbg(uint8_t *argv) {
 		APP_PRINT("  a: Blink all LEDs\n");
 		APP_PRINT("  b: Motor front test in 2s\n");
 		APP_PRINT("  c: Motor rear test in 2s\n");
-		APP_PRINT("  d: Read inputs in 5s\n");	
+		APP_PRINT("  d: Read inputs in 5s\n");
+		APP_PRINT("  f: Calibrate delay scrolling. Ex: dbg f 500\n");
 	}
 	break;
 	}

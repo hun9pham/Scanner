@@ -53,8 +53,8 @@ void Indicator::Blinking() {
 //////////////////////////////////////////////
 // Class ENGINES
 //////////////////////////////////////////////
-#define MOTOR1_PWM_PERCENT  (70)
-#define MOTOR2_PWM_PERCENT  (95)
+#define MOTOR1_PWM_PERCENT  (75)
+#define MOTOR2_PWM_PERCENT  (75)
 
 Engines::Engines() {
     
@@ -65,7 +65,7 @@ Engines::~Engines() {
 }
 
 void Engines::initialize() {
-    MOTORS_PWMInit();
+    MOTORS_CtlInit();
     this->MOTOR1_StateCtl = STOPPING;
     this->MOTOR2_StateCtl = STOPPING;
 }
@@ -74,35 +74,49 @@ void Engines::setMOTORS(MOTORS_Pos_t MOTORS, EngineState_t state) {
     if (MOTORS == MOTOR_FRONT) {
         if (state == STOPPING) {
             this->MOTOR1_StateCtl = STOPPING;
-            MOTOR1_SetPWM(0);
+            MOTOR1_SetPWM(STOP);
         }
-        else {
-            this->MOTOR1_StateCtl = SCROLLING;
-            MOTOR1_SetPWM(MOTOR1_PWM_PERCENT);
+        else if (state == SCROLL_FORDWARD) {
+            this->MOTOR1_StateCtl = SCROLL_FORDWARD;
+            MOTOR1_SetPWM(SCROLLFORWARD);
+        }
+        else if (state == SCROLL_BACKWARD) {
+            this->MOTOR1_StateCtl = SCROLL_BACKWARD;
+            MOTOR1_SetPWM(SCROLLBACKWARD);
         }
     }
     else if (MOTORS == MOTOR_REAR) {
         if (state == STOPPING) {
             this->MOTOR2_StateCtl = STOPPING;
-            MOTOR2_SetPWM(0);
+            MOTOR2_SetPWM(STOP);
         }
-        else {
-            this->MOTOR2_StateCtl = SCROLLING;
-            MOTOR2_SetPWM(MOTOR2_PWM_PERCENT);
+        else if (state == SCROLL_FORDWARD) {
+            this->MOTOR2_StateCtl = SCROLL_FORDWARD;
+            MOTOR2_SetPWM(SCROLLFORWARD);
+        }
+        else if (state == SCROLL_BACKWARD) {
+            this->MOTOR2_StateCtl = SCROLL_BACKWARD;
+            MOTOR2_SetPWM(SCROLLBACKWARD);
         }
     }
     else if (MOTORS == DUOMOTORS) {
         if (state == STOPPING) {
             this->MOTOR1_StateCtl = STOPPING;
             this->MOTOR2_StateCtl = STOPPING;
-            MOTOR1_SetPWM(0);
-            MOTOR2_SetPWM(0);
+            MOTOR1_SetPWM(STOP);
+            MOTOR2_SetPWM(STOP);
         }
-        else {
-            this->MOTOR1_StateCtl = SCROLLING;
-            this->MOTOR2_StateCtl = SCROLLING;
-            MOTOR1_SetPWM(MOTOR1_PWM_PERCENT);
-            MOTOR2_SetPWM(MOTOR2_PWM_PERCENT);
+        else if (state == SCROLL_FORDWARD) {
+            this->MOTOR1_StateCtl = SCROLL_FORDWARD;
+            this->MOTOR2_StateCtl = SCROLL_FORDWARD;
+            MOTOR1_SetPWM(SCROLLFORWARD);
+            MOTOR2_SetPWM(SCROLLFORWARD);
+        }
+        else if (state == SCROLL_BACKWARD) {
+            this->MOTOR1_StateCtl = SCROLL_BACKWARD;
+            this->MOTOR2_StateCtl = SCROLL_BACKWARD;
+            MOTOR1_SetPWM(SCROLLBACKWARD);
+            MOTOR2_SetPWM(SCROLLBACKWARD);
         }
     }
 }
@@ -112,5 +126,12 @@ uint8_t Engines::readMOTORStateCtl(uint8_t MOTORS) {
 }
 
 bool Engines::isRun(MOTORS_Pos_t MOTORS) {
-    return ((MOTORS == MOTOR_FRONT) ? MOTOR1_IsRun() : MOTOR2_IsRun());
+    bool ret = false;
+    if (MOTORS == MOTOR_FRONT) {
+        ret = MOTOR1_IsRun();
+    }
+    else if (MOTORS == MOTOR_REAR) {
+        ret = MOTOR2_IsRun();
+    }
+    return ret;
 }

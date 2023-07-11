@@ -22,6 +22,7 @@
 #define TAG	"TaskDeviceManager"
 
 /* Extern variables ----------------------------------------------------------*/
+extern uint32_t calibDelayScroll;
 
 /* Private variables ---------------------------------------------------------*/
 static uint32_t now = 0;
@@ -30,8 +31,7 @@ static uint32_t now = 0;
 static void MOTORS_Monitors();
 static void sendPCREQandWait(const char *pcMsg) {
 	task_post_common_msg(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_PROCEDURE_CALL_REQ,
-			(uint8_t*)pcMsg, strlen(pcMsg));
-	APP_DBG(TAG, "Waiting....");
+						(uint8_t*)pcMsg, strlen(pcMsg));
 }
 
 static uint8_t assertSensState(uint8_t sensId) {
@@ -56,14 +56,6 @@ static uint8_t assertSensState(uint8_t sensId) {
 	return ret;
 }
 
-static void workFlowSetTimeOut() {
-	timer_set(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_REFRESH_WORKFLOW, 10000, TIMER_ONE_SHOT);
-}
-
-static void workFlorClrTimeOut() {
-	timer_remove_attr(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_REFRESH_WORKFLOW);
-}
-
 /* Function implementation ---------------------------------------------------*/
 void TaskDeviceManager(ak_msg_t* msg) {
 	switch (msg->sig) {
@@ -73,24 +65,23 @@ void TaskDeviceManager(ak_msg_t* msg) {
 
 		/* Giấy đã được nhả ra hết */
 		if (assertSensState(1) != 0 && assertSensState(2) != 0 && assertSensState(3) != 0) {
+			/* Turn off all motors */
+			ENGINES.setMOTORS(DUOMOTORS, STOPPING);
+			/* Tắt all LEDs */
 			LEDFLASH.OffState();
 			LEDDIR.OffState();
 			LEDFAULT.OffState();
-			ENGINES.setMOTORS(DUOMOTORS, STOPPING);
-			// makeBeepSound(50);
-			task_polling_set_ability(SL_TAKS_POLL_DEVMANAGER_ID, AK_ENABLE);
-			memset(&MPU_IncomMsg, 0, sizeof(MPU_IncomMsg_t));
 			devStagePolling = STAGE_1ST;
 			break;
 		}
 
 		/* Lỗi giấy còn trong máy */
-		APP_DBG(TAG, "Conveyor detects pappers");
+		APP_DBG(TAG, "Conveyor detects papers");
 		if (assertSensState(1) == 0 || assertSensState(2) == 0) {
-			ENGINES.setMOTORS(MOTOR_FRONT, SCROLLING);
+			ENGINES.setMOTORS(MOTOR_FRONT, SCROLL_BACKWARD);
 		}
 		if (assertSensState(3) == 0) {
-			ENGINES.setMOTORS(MOTOR_REAR, SCROLLING);
+			ENGINES.setMOTORS(MOTOR_REAR, SCROLL_BACKWARD);
 		}
 		timer_set(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_REFRESH_WORKFLOW, 350, TIMER_ONE_SHOT);
 	}
@@ -100,11 +91,11 @@ void TaskDeviceManager(ak_msg_t* msg) {
 		APP_DBG_SIG(TAG, "SL_DMANAGER_PROCEDURE_CALL_REQ");
 
 		const char *pcrqMsg = (const char*)get_data_common_msg(msg);
-		APP_DBG(TAG, "Procedure Call - %s", pcrqMsg);
+		APP_DBG(TAG, "Procedure Call - %s, wait ...", pcrqMsg);
 		putMPUMessage(pcrqMsg);
 
 		/* Wait for MPU Response to continue */
-		task_polling_set_ability(SL_TAKS_POLL_DEVMANAGER_ID, AK_DISABLE);
+		task_polling_set_ability(SL_TASK_POLL_DEVMANAGER_ID, AK_DISABLE);
 	}
 	break;
 
@@ -112,7 +103,7 @@ void TaskDeviceManager(ak_msg_t* msg) {
 		APP_DBG_SIG(TAG, "SL_DMANAGER_PROCEDURE_CALL_RESP");
 
 		/* Continue workflow */
-		task_polling_set_ability(SL_TAKS_POLL_DEVMANAGER_ID, AK_ENABLE);
+		task_polling_set_ability(SL_TASK_POLL_DEVMANAGER_ID, AK_ENABLE);
 	}
 	break;
 
@@ -125,7 +116,7 @@ void TaskDeviceManager(ak_msg_t* msg) {
 	case SL_DMANAGER_EXCEPTION_PAPERJAM: {
 		APP_DBG_SIG(TAG, "SL_DMANAGER_EXCEPTION_PAPERJAM");
 
-		// makeBeepSound(100);
+		makeBeepSound(100);
 		/* LED Fault sáng */
 		LEDFAULT.OnState();
 		/* Gửi message “#3\r\n” */
@@ -153,12 +144,21 @@ void TaskPollDevManager() {
 			LEDDIR.Blinking();
 			/* Check cảm biến 1 */
 			if (assertSensState(1) == 0) {
-				APP_DBG(TAG, "[DONE-STAGE] STAGE_1ST");
-				LEDDIR.OffState();
-				ENGINES.setMOTORS(MOTOR_FRONT, SCROLLING);
-				/* Next stage */
-				devStagePolling = STAGE_2ND;
-				workFlowSetTimeOut();
+				ENGINES.setMOTORS(MOTOR_FRONT, SCROLL_FORDWARD);
+				if (assertSensState(2) == 0) {
+					APP_PRINT("[DONE-STAGE] STAGE_1ST\r\n");
+					LEDDIR.OffState();
+					makeBeepSound(100);
+					/* Next stage */
+					devStagePolling = STAGE_2ND;
+					SENSOR2_OutOfPaper = false;
+					SENSOR1_DectecShortPaper = false;
+					enableEXTI(&EXTI6_EnableDetectFirstStopScroll);
+					enableEXTI(&EXTI4_EnableDetectShortPaper);
+				}
+			}
+			else {
+				ENGINES.setMOTORS(MOTOR_FRONT, STOPPING);
 			}
 		}
 		break;
@@ -169,97 +169,88 @@ void TaskPollDevManager() {
 				cảm biến 1 phát hiện hết giấy, cảm biến 2 phát hiện có 
 				giấy, cảm biến 3 ko có giấy) 
 			*/
-#if 0
-			if ((assertSensState(1) == 1 && assertSensState(2) == 0) &&
-				assertSensState(3) == 1)
-			{
+			if (SENSOR1_DectecShortPaper) {
 				/* 
 					REQ: Giấy ngắn, báo chụp ảnh, đợi confirm rồi nhả giấy ra
 				*/
+				/* On LED Flash */
+				LEDFLASH.OnState();
 				/* Dừng động cơ */
-				ENGINES.setMotorFront(ENGINE_STANDSTILL);
+				ENGINES.setMOTORS(MOTOR_FRONT, STOPPING);
+				delayMillis(100);
 				/* Gửi message yêu cầu chụp hình */
 				sendPCREQandWait(MPU_REQSCREENSHOT);
 				/* Exception case handle */
 				devStagePolling = EXCEPTION_CASE;
+				APP_PRINT("goto EXCEPTION_CASE\r\n");
 			}
-			else if ((assertSensState(1) == 0 && assertSensState(2) == 0) &&
-				assertSensState(3) == 0)
-			{
-				APP_DBG(TAG, "[DONE-STAGE] STAGE_2ND");
-				/* Dừng động cơ */
-				ENGINES.setMotorFront(ENGINE_STANDSTILL);
-				/* On LED Flash */
-				LEDFLASH.OnState();
-				/* Gửi message yêu cầu chụp hình */
-				sendPCREQandWait(MPU_REQSCREENSHOT);
-				/* Next stage */
-				devStagePolling = STAGE_3RD;
-			}
-#else
-			if (assertSensState(3) == 0) {
-				APP_DBG(TAG, "[DONE-STAGE] STAGE_2ND");
+			else if (assertSensState(3) == 0) {
+				APP_PRINT("[DONE-STAGE] STAGE_2ND\r\n");
 				/* Dừng động cơ */
 				ENGINES.setMOTORS(MOTOR_FRONT, STOPPING);
+				delayMillis(100);
 				/* On LED Flash */
 				LEDFLASH.OnState();
 				/* Gửi message yêu cầu chụp hình */
 				sendPCREQandWait(MPU_REQSCREENSHOT);
 				/* Next stage */
 				devStagePolling = STAGE_3RD;
-				workFlowSetTimeOut();
+				enableEXTI(&EXTI5_EnableDetectOutOfPaper);
+				disableEXTI(&EXTI4_EnableDetectShortPaper);
 			}
-#endif
 		}
 		break;
 
     	case STAGE_3RD: { /* Cảm biến 1 ko thấy giấy, cảm biến 2 ko thấy giấy */
-			if (ENGINES.readMOTORStateCtl(MOTOR_FRONT) == STOPPING && 
-				ENGINES.readMOTORStateCtl(MOTOR_REAR) == STOPPING)
-			{
+			if (SENSOR2_OutOfPaper == false) {
 				/* Chạy hai motor để tiếp tục cuộn giấy ra */
-				ENGINES.setMOTORS(DUOMOTORS, SCROLLING);
-			}
-			if (assertSensState(1) != 0 && assertSensState(2) != 0) { /* Giấy đã đi qua hết sensors[1:2] */
-				APP_DBG(TAG, "[DONE-STAGE] STAGE_3RD");
-				/* Dừng motor front và tiếp tục chạy motor rear để tránh quá tải */
-				ENGINES.setMOTORS(MOTOR_FRONT, STOPPING);
+				ENGINES.setMOTORS(DUOMOTORS, SCROLL_FORDWARD);
+				delayMillis(calibDelayScroll);
+				ENGINES.setMOTORS(DUOMOTORS, STOPPING);
+				delayMillis(100);
 				/* Gửi message yêu cầu chụp hình */
 				sendPCREQandWait(MPU_REQSCREENSHOT);
+			}
+			else { /* Giấy đã đi qua hết sensors[1:2] */
+				APP_PRINT("[DONE-STAGE] STAGE_3RD\r\n");
+				/* Dừng motor front và tiếp tục chạy motor rear để tránh quá tải */
+				ENGINES.setMOTORS(DUOMOTORS, STOPPING);
 				/* Next stage */
 				devStagePolling = STAGE_4TH;
-				workFlowSetTimeOut();
 			}
+			/* On LED Flash */
+			LEDFLASH.OnState();
 		}
 		break;
 
     	case STAGE_4TH: { /* Chờ MPU Confirm rồi gửi command hết giấy tới MPU */
-			APP_DBG(TAG, "[DONE-STAGE] STAGE_4TH");
+			APP_PRINT("[DONE-STAGE] STAGE_4TH\r\n");
 			/* Gửi command hết giấy mà không cần chờ phản hồi */
 			const char *notifyMsg = MPU_OUTOFPAPPER;
 			putMPUMessage(notifyMsg);
 			APP_DBG(TAG, "Command - %s", notifyMsg);
 			/* Next stage */
 			devStagePolling = STAGE_5TH;
-			workFlorClrTimeOut();
 		}
 		break;
 
     	case STAGE_5TH: { /* Sau khi gửi message hết giấy thì nhả giấy ra khỏi bộ cuốn giấy */
-			if (assertSensState(3) != 0) { /* Giấy đã được cuộn ra hết */
-				APP_DBG(TAG, "[DONE-STAGE] STAGE_5TH");
-				delayMillis(300); /* Delay them 1 chút để giấy cuốn hết ra ngoài */
+			ENGINES.setMOTORS(DUOMOTORS, SCROLL_BACKWARD);
+			if (assertSensState(2) != 0) { /* Giấy đã được cuộn ra hết */
+				APP_PRINT("[DONE-STAGE] STAGE_5TH\r\n");
+				delayMillis(500); /* Delay them 1 chút để giấy cuốn hết ra ngoài */
 				ENGINES.setMOTORS(DUOMOTORS, STOPPING);
 				/* Tắt LED Flash */
 				LEDFLASH.OffState();
 				/* Reset stage */
-				devStagePolling = STAGE_1ST;
+				timer_set(SL_TASK_SYSTEM_ID, SL_SYSTEM_ENTRY_IDLING, 350, TIMER_ONE_SHOT);
 			}
 		}
 		break;
 
 		case EXCEPTION_CASE: {
 			task_post_pure_msg(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_REFRESH_WORKFLOW);
+			timer_set(SL_TASK_SYSTEM_ID, SL_SYSTEM_ENTRY_IDLING, 350, TIMER_ONE_SHOT);
 		}
 		break;
 		
@@ -277,40 +268,43 @@ void TaskPollDevManager() {
 }
 
 void MOTORS_Monitors() {
-	if (ENGINES.readMOTORStateCtl(MOTOR_FRONT) != STOPPING &&
-		ENGINES.readMOTORStateCtl(MOTOR_REAR) != STOPPING)
-	{
-		uint8_t isRun = 0;
-		isRun += ENGINES.isRun(MOTOR_FRONT);
-		isRun += ENGINES.isRun(MOTOR_REAR);
-		if (isRun != (uint8_t)(true + true)) {
-			task_post_pure_msg(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_EXCEPTION_PAPERJAM);
+	bool isFault = false;
+	bool isMOTORRun;
+	static uint8_t assertPaperJameCnt = 0;
+	static uint32_t timDelay = millisTick();
+
+	if (millisTick() - timDelay > 1000) {
+		timDelay = millisTick();
+
+		if (ENGINES.readMOTORStateCtl(MOTOR_FRONT) != STOPPING) {
+			isMOTORRun = ENGINES.isRun(MOTOR_FRONT);
+			if (!isMOTORRun) {
+				APP_PRINT("MOTOR_FRONT = 0\r\n");
+				isFault = true;
+			}
+			else {
+				APP_PRINT("MOTOR_FRONT = 1\r\n");
+			}
+		}
+		if (ENGINES.readMOTORStateCtl(MOTOR_REAR) != STOPPING) {
+			isMOTORRun = ENGINES.isRun(MOTOR_REAR);
+			if (!isMOTORRun) {
+				APP_PRINT("MOTOR_REAR = %d\r\n", ENGINES.isRun(MOTOR_REAR));
+				isFault = true;
+			}
+		}
+		if (isFault) {
+			++assertPaperJameCnt;
+			if (assertPaperJameCnt == 3) { /* Trong 3s, nếu động cơ vẫn kẹt thì report */
+				task_post_pure_msg(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_EXCEPTION_PAPERJAM);
+			}
 		}
 		else {
+			assertPaperJameCnt = 0;
 			/* LED Fault tắt */
-			LEDFAULT.OffState();
+			if (LEDFAULT.getState() == INDICATOR_BRIGHT) {
+				LEDFAULT.OffState();
+			}
 		}
 	}
-	// else if (ENGINES.readMOTORStateCtl(MOTOR_FRONT) != STOPPING) {
-	// 	uint8_t isRun = 0;
-	// 	isRun += ENGINES.isRun(MOTOR_FRONT);
-	// 	if (!isRun) {
-	// 		task_post_pure_msg(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_EXCEPTION_PAPERJAM);
-	// 	}
-	// 	else {
-	// 		/* LED Fault tắt */
-	// 		LEDFAULT.OffState();
-	// 	}
-	// }
-	// else if (ENGINES.readMOTORStateCtl(MOTOR_REAR) != STOPPING) {
-	// 	uint8_t isRun = 0;
-	// 	isRun += ENGINES.isRun(MOTOR_REAR);
-	// 	if (!isRun) {
-	// 		task_post_pure_msg(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_EXCEPTION_PAPERJAM);
-	// 	}
-	// 	else {
-	// 		/* LED Fault tắt */
-	// 		LEDFAULT.OffState();
-	// 	}
-	// }
 }

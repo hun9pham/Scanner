@@ -69,7 +69,8 @@ enum {
 enum {
     SL_SYSTEM_ALIVE_NOTIFY = AK_USER_DEFINE_SIG,
     SL_SYSTEM_REBOOT_REQ,
-    SL_SYSTEM_STARTUP,
+    SL_SYSTEM_ENTRY_WORKFLOW_REQ,
+    SL_SYSTEM_ENTRY_IDLING,
 };
 
 /*----------------------------------------------------------------------------*
@@ -115,7 +116,7 @@ enum {
 #define MPU_CORMFIRM         (const char*)"1\n"
 #define MPU_OUTOFPAPPER      (const char*)"#2\r\n"
 #define MPU_PAPERJAM         (const char*)"#3\r\n"
-#define MPU_WEBTIMEOUT       (const char*)"#0\n"
+#define MPU_WEBTIMEOUT       (const char*)"0\n"
 
 /* Function prototypes -------------------------------------------------------*/
 extern int main_app();
