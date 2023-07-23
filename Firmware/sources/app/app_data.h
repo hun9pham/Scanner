@@ -7,7 +7,10 @@
  *  DECLARE: Common definitions
  *  Note: Data using for all task will be declare in here
  *----------------------------------------------------------------------------*/
-#define MAX_MPU_MSG_RECV_LEN     (8)
+#define MAX_MPU_MSG_RECV_LEN        (8)
+
+#define eepromUSER_SETTING_ADDR     (50)
+#define delaySCROLLING_MAGICNUM     (0x11223344)
 
 /* Enumarics -----------------------------------------------------------------*/
 typedef enum eDevCtlStage {
@@ -26,10 +29,15 @@ typedef struct t_MPU_IncomeMsg{
     uint8_t ind;
 } MPU_IncomMsg_t;
 
+typedef struct t_UserSetting {
+    uint32_t magicNum;
+    uint32_t delayVal;
+} UserSetting;
+
 /* Extern variables ----------------------------------------------------------*/
 extern DevMngCtlStage_t devStagePolling;
 extern MPU_IncomMsg_t MPU_IncomMsg;
-extern uint32_t calibDelayScroll;
+extern UserSetting usrAdjust;
 
 /* Function prototypes -------------------------------------------------------*/
 

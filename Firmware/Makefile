@@ -15,8 +15,8 @@ BUILD_DIR = build
 TARGET = $(BUILD_DIR)/$(NAME_MODULE).axf
 
 # Compiler path --====================================================================================
-GCC_PATH 		= $(HOME)/CompilerARM/gcc-arm-none-eabi-10.3-2021.10-x86_64-linux/gcc-arm-none-eabi-10.3-2021.10
-PROGRAMER_PATH 	= $(HOME)/TOols/STMicroelectronics/STM32Cube/STM32CubeProgrammer/bin/STM32_Programmer.sh
+GCC_PATH 		= $(HOME)/SoftInst/gcc-arm-none-eabi-10.3-2021.10-x86_64-linux/gcc-arm-none-eabi-10.3-2021.10
+PROGRAMER_PATH 	= $(HOME)/SoftInst/STMicroelectronics/STM32Cube/STM32CubeProgrammer/bin/STM32_Programmer.sh
 # --==================================================================================================
 
 # App start address, that need sync with declare in linker file and interrupt vector table.

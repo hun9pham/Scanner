@@ -273,11 +273,12 @@ int8_t csDbg(uint8_t *argv) {
 	break;
 
 	case 'f': {
-		extern uint32_t calibDelayScroll;
+		extern UserSetting usrAdjust;
 		char *pt = (char*)(argv + 6);
 		uint32_t delayCalib = atoi(pt);
 		APP_PRINT("Set delay scrolling: %d", delayCalib);
-		calibDelayScroll = delayCalib;
+		usrAdjust.delayVal = delayCalib;
+		EEPROM_Write(eepromUSER_SETTING_ADDR, (uint8_t*)&usrAdjust, sizeof(UserSetting));
 	}
 	break;
 

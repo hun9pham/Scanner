@@ -2,4 +2,7 @@
 
 DevMngCtlStage_t devStagePolling = STAGE_IDLE;
 MPU_IncomMsg_t MPU_IncomMsg;
-uint32_t calibDelayScroll = 500;
+UserSetting usrAdjust = {
+    .magicNum = 0,
+    .delayVal = 500
+};

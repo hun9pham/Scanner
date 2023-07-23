@@ -22,7 +22,6 @@
 #define TAG	"TaskDeviceManager"
 
 /* Extern variables ----------------------------------------------------------*/
-extern uint32_t calibDelayScroll;
 
 /* Private variables ---------------------------------------------------------*/
 static uint32_t now = 0;
@@ -117,6 +116,8 @@ void TaskDeviceManager(ak_msg_t* msg) {
 		APP_DBG_SIG(TAG, "SL_DMANAGER_EXCEPTION_PAPERJAM");
 
 		makeBeepSound(100);
+		/* Đưng động cơ */
+		ENGINES.setMOTORS(DUOMOTORS, STOPPING);
 		/* LED Fault sáng */
 		LEDFAULT.OnState();
 		/* Gửi message “#3\r\n” */
@@ -205,7 +206,7 @@ void TaskPollDevManager() {
 			if (SENSOR2_OutOfPaper == false) {
 				/* Chạy hai motor để tiếp tục cuộn giấy ra */
 				ENGINES.setMOTORS(DUOMOTORS, SCROLL_FORDWARD);
-				delayMillis(calibDelayScroll);
+				delayMillis(usrAdjust.delayVal);
 				ENGINES.setMOTORS(DUOMOTORS, STOPPING);
 				delayMillis(100);
 				/* Gửi message yêu cầu chụp hình */
@@ -249,6 +250,9 @@ void TaskPollDevManager() {
 		break;
 
 		case EXCEPTION_CASE: {
+			/* Gửi command hết giấy mà không cần chờ phản hồi */
+			const char *notifyMsg = MPU_OUTOFPAPPER;
+			putMPUMessage(notifyMsg);
 			task_post_pure_msg(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_REFRESH_WORKFLOW);
 			timer_set(SL_TASK_SYSTEM_ID, SL_SYSTEM_ENTRY_IDLING, 350, TIMER_ONE_SHOT);
 		}

@@ -77,6 +77,14 @@ int main_app() {
 	LEDFAULT.initialize(ledFaultInit, ledFaultOn, ledFaultOff);
 	ENGINES.initialize();
 
+	/* Delay coefficient */
+	EEPROM_Read(eepromUSER_SETTING_ADDR, (uint8_t*)&usrAdjust, sizeof(UserSetting));
+	if (delaySCROLLING_MAGICNUM != usrAdjust.magicNum) {
+		usrAdjust.magicNum = delaySCROLLING_MAGICNUM;
+		usrAdjust.delayVal = 500;
+		EEPROM_Write(eepromUSER_SETTING_ADDR, (uint8_t*)&usrAdjust, sizeof(UserSetting));
+	}
+
 	/*---------------------------------------------------------------------*/
 	/*							 System app setup						   */	
 	/*---------------------------------------------------------------------*/
