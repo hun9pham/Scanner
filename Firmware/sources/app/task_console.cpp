@@ -276,7 +276,14 @@ int8_t csDbg(uint8_t *argv) {
 		extern UserSetting usrAdjust;
 		char *pt = (char*)(argv + 6);
 		uint32_t delayCalib = atoi(pt);
-		APP_PRINT("Set delay scrolling: %d", delayCalib);
+		if (delayCalib >= 500 && delayCalib <= 3000) {
+			APP_PRINT("Set delay scrolling - %d", delayCalib);
+			usrAdjust.delayVal = delayCalib;
+		}
+		else {
+			delayCalib = 500;
+			APP_PRINT("Invalid delay value - %d", delayCalib);
+		}
 		usrAdjust.delayVal = delayCalib;
 		EEPROM_Write(eepromUSER_SETTING_ADDR, (uint8_t*)&usrAdjust, sizeof(UserSetting));
 	}
@@ -291,7 +298,7 @@ int8_t csDbg(uint8_t *argv) {
 		APP_PRINT("  b: Motor front test in 2s\n");
 		APP_PRINT("  c: Motor rear test in 2s\n");
 		APP_PRINT("  d: Read inputs in 5s\n");
-		APP_PRINT("  f: Calibrate delay scrolling. Ex: dbg f 500\n");
+		APP_PRINT("  f: Calibrate delay scrolling [500:3000]. Example: dbg f 500\n");
 	}
 	break;
 	}
