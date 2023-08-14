@@ -1,0 +1,5 @@
+sources/sys/sys_dbg.c:29:6:fatalInit	16	static
+sources/sys/sys_dbg.c:58:6:fatalClear	16	static
+sources/sys/sys_dbg.c:75:6:fatalApp	24	static
+sources/sys/sys_dbg.c:158:13:fatalRead	8	static
+sources/sys/sys_dbg.c:167:6:fatalGet	16	static

@@ -1,0 +1,2 @@
+sources/platform/Libraries/CMSIS/Device/ST/STM32L1xx/Source/Templates/system_stm32l1xx.c:181:6:SystemInit	16	static
+sources/platform/Libraries/CMSIS/Device/ST/STM32L1xx/Source/Templates/system_stm32l1xx.c:253:6:SystemCoreClockUpdate	0	static

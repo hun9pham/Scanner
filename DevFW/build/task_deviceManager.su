@@ -1,0 +1,2 @@
+sources/app/task_deviceManager.cpp:43:6:void TaskDeviceManager(ak_msg_t*)	8	static
+sources/app/task_deviceManager.cpp:137:6:void TaskPollDevManager()	16	static

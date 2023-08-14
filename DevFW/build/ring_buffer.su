@@ -1,0 +1,12 @@
+sources/common/ring_buffer.c:20:6:ringBufferInit	4	static
+sources/common/ring_buffer.c:31:10:ringBufferAvailable	0	static
+sources/common/ring_buffer.c:36:6:isRingBufferEmpty	0	static
+sources/common/ring_buffer.c:41:6:isRingBufferFull	0	static
+sources/common/ring_buffer.c:46:9:ringBufferPut	8	static
+sources/common/ring_buffer.c:72:9:ringBufferGet	8	static
+sources/common/ring_buffer.c:95:6:ringBufferCharInit	0	static
+sources/common/ring_buffer.c:105:10:ringBufferCharAvailable	0	static
+sources/common/ring_buffer.c:110:6:isRingBufferCharEmpty	0	static
+sources/common/ring_buffer.c:115:6:isRingBufferCharFull	0	static
+sources/common/ring_buffer.c:120:6:ringBufferCharPut	0	static
+sources/common/ring_buffer.c:139:9:ringBufferCharGet	0	static

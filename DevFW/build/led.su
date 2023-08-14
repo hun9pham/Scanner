@@ -1,0 +1,7 @@
+sources/driver/led/led.c:20:6:led_init	16	static
+sources/driver/led/led.c:38:6:led_on	0	static
+sources/driver/led/led.c:45:6:led_off	0	static
+sources/driver/led/led.c:52:6:led_toggle	0	static
+sources/driver/led/led.c:61:6:led_blink_set	8	static
+sources/driver/led/led.c:70:6:led_blink_reset	8	static
+sources/driver/led/led.c:76:6:led_blink_polling	0	static

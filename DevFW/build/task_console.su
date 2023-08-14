@@ -1,0 +1,7 @@
+sources/app/task_console.cpp:141:8:int8_t csHelp(uint8_t*)	16	static
+sources/app/task_console.cpp:213:8:int8_t csDbg(uint8_t*)	24	static
+sources/app/task_console.cpp:150:8:int8_t csRst(uint8_t*)	8	static
+sources/app/task_console.cpp:157:8:int8_t csFatal(uint8_t*)	8	static
+sources/app/task_console.cpp:105:8:int8_t csInfo(uint8_t*)	8	static
+sources/app/task_console.cpp:57:6:void TaskConsole(ak_msg_t*)	0	static
+sources/app/task_console.cpp:81:6:void TaskPollConsole()	16	static
