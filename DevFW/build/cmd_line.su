@@ -1,7 +1,0 @@
-sources/common/cmd_line.c:23:9:cmdLineParser	32	static
-sources/common/cmd_line.c:68:8:cmdLinePutChar	4	static
-sources/common/cmd_line.c:82:8:cmdLineClrChar	0	static
-sources/common/cmd_line.c:90:6:cmdLineClrBuffer	8	static
-sources/common/cmd_line.c:96:10:cmdLineGetAttr	16	static
-sources/common/cmd_line.c:109:9:getCmdLineParserCounter	0	static
-sources/common/cmd_line.c:113:10:getCmdLineStr	0	static

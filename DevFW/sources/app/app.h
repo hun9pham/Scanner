@@ -102,7 +102,7 @@ enum {
 #ifdef RELEASE
 #define MCU_PLATFROM                     "Stm32l151c8t6"
 #define FIRMWARE_VERSION 		         "v1.1"
-#define HARDWARE_VERSION 		         "v2.0"
+#define HARDWARE_VERSION 		         "v1.0"
 #else
 #define MCU_PLATFROM                     "STM32L151C8T6"
 #define FIRMWARE_VERSION 		         "v1.0"

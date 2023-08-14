@@ -1,5 +1,0 @@
-sources/platform/platform.c:12:6:enableInterrupts	0	static
-sources/platform/platform.c:17:6:disableInterrupts	0	static
-sources/platform/platform.c:22:6:entryCritical	0	static
-sources/platform/platform.c:29:6:exitCritical	0	static
-sources/platform/platform.c:39:5:getNestEntryCriticalCounter	0	static
