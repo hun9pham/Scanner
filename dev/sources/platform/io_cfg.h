@@ -97,6 +97,8 @@ enum eMOTORS_StateCtl {
 /* Extern variables ----------------------------------------------------------*/
 extern ringBufferChar_t MPUInterfaceRx;
 
+extern volatile bool isPaperShortDetected;
+
 /* Read encoder pulse when motors running */
 extern volatile bool MOTOR1_EncoderPulse;
 extern volatile bool MOTOR2_EncoderPulse;

@@ -1,7 +1,7 @@
 #include "app_data.h"
 
 MPU_IncomMsg_t MPU_IncomMsg;
-UserSetting usrAdjust = {
+UserSetting_t usrAdjust = {
     .magicNum = 0,
     .delayVal = 500
 };

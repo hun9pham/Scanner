@@ -270,7 +270,7 @@ int8_t csDbg(uint8_t *argv) {
 	break;
 
 	case 'f': {
-		extern UserSetting usrAdjust;
+		extern UserSetting_t usrAdjust;
 		char *pt = (char*)(argv + 6);
 		uint32_t delayCalib = atoi(pt);
 		if (delayCalib >= 500 && delayCalib <= 3000) {
@@ -282,7 +282,7 @@ int8_t csDbg(uint8_t *argv) {
 			APP_PRINT("Invalid delay value - %d", delayCalib);
 		}
 		usrAdjust.delayVal = delayCalib;
-		EEPROM_Write(eepromUSER_SETTING_ADDR, (uint8_t*)&usrAdjust, sizeof(UserSetting));
+		EEPROM_Write(eepromUSER_SETTING_ADDR, (uint8_t*)&usrAdjust, sizeof(UserSetting_t));
 	}
 	break;
 

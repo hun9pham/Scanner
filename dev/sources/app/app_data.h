@@ -23,11 +23,11 @@ typedef struct t_MPU_IncomeMsg{
 typedef struct t_UserSetting {
     uint32_t magicNum;
     uint32_t delayVal;
-} UserSetting;
+} UserSetting_t;
 
 /* Extern variables ----------------------------------------------------------*/
 extern MPU_IncomMsg_t MPU_IncomMsg;
-extern UserSetting usrAdjust;
+extern UserSetting_t usrAdjust;
 
 /* Function prototypes -------------------------------------------------------*/
 

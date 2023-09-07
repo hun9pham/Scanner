@@ -330,9 +330,9 @@ void EXTI4_Handler() {
 		// hiện giấy ngắn.
 		///////////////////////////////
 		{
-			SYS_PRINT("EXTI_Line4\r\n");
 			MOTOR1_SetPWM(STOP);
 			EXTI4_SetIRQ(false);
+			isPaperShortDetected = true;
 		}
 		EXTI_ClearITPendingBit(EXTI_Line4);
 		EXTI_ClearFlag(EXTI_Line4);

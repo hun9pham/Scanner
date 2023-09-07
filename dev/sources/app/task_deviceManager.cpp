@@ -31,12 +31,14 @@ static DevMngCtlStage_t scannerStageRun = STAGE_IDLE;
 static DevMngCtlStage_t dbgStageRun = STAGE_EXCP;
 #endif
 
+static uint32_t timeStamp = 0;
+
 /* Private function prototypes -----------------------------------------------*/
 static void MOTORS_Monitoring();
 static void sendPCREQandWait(const char *pcMsg) {
 	taskPostCommonMsg(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_PROCEDURE_CALL_REQ,
 						(uint8_t*)pcMsg, strlen(pcMsg));
-	delayMillis(200);
+	delayMillis(250);
 }
 
 /* Function implementation ---------------------------------------------------*/
@@ -74,6 +76,9 @@ void TaskDeviceManager(ak_msg_t* msg) {
 	case SL_DMANAGER_ENTRY_IDLING: {
 		APP_DBG_SIG(TAG, "SL_DMANAGER_ENTRY_IDLING");
 		
+		/*
+			MCU khởi động xong cho led status sáng
+		*/
 		LEDSTATUS.OnState();
 		LEDFLASH.OffState();
 		LEDDIR.OffState();
@@ -90,6 +95,7 @@ void TaskDeviceManager(ak_msg_t* msg) {
 		APP_DBG_SIG(TAG, "SL_DMANAGER_START_WORKFLOW_REQ");
 
 		scannerStageRun = STAGE_1ST;
+		timeStamp = 0;
 		taskPollingSetAbility(SL_TASK_POLL_DEVMANAGER_ID, AK_ENABLE);
 	}
 	break;
@@ -97,7 +103,7 @@ void TaskDeviceManager(ak_msg_t* msg) {
 	case SL_DMANAGER_PROCEDURE_CALL_REQ: {
 		APP_DBG_SIG(TAG, "SL_DMANAGER_PROCEDURE_CALL_REQ");
 
-		const char *pcrqMsg = (const char*)get_data_common_msg(msg);
+		const char *pcrqMsg = (const char*)getDataCommonMsg(msg);
 		APP_DBG(TAG, "Procedure Call - %s, wait ...", pcrqMsg);
 		putMPUMessage(pcrqMsg);
 
@@ -148,10 +154,14 @@ void TaskPollDevManager() {
 	break;
 
 	case STAGE_1ST: {
-		/////////////////////////////////////////////////////////
+		/////////////////////////////////////////////////
 		// TODO: Chờ cảm biến 1 phát hiện giấy đưa vào
-		/////////////////////////////////////////////////////////
-		LEDDIR.Blinking();
+		/////////////////////////////////////////////////
+		if (millisTick() - timeStamp > 250) {
+			LEDDIR.Blinking();
+			timeStamp = millisTick();
+		}
+
 		if (readFrontSensor() == PAPER_DETECTED) {
 			ENGINES.setMOTORS(MOTOR_FRONT, SCROLL_FORDWARD);
 			if (readMidSensor() == PAPER_DETECTED) {
@@ -160,6 +170,7 @@ void TaskPollDevManager() {
 				scannerStageRun = STAGE_2ND;
 				EXTI_DetectEndpointPaper(true);
 				EXTI_DetectShortPaper(true);
+				isPaperShortDetected = false;
 			}
 		}
 		else {
@@ -175,25 +186,43 @@ void TaskPollDevManager() {
 		// cảm biến 1 phát hiện hết giấy, cảm biến 2 phát hiện có 
 		// giấy, cảm biến 3 ko có giấy).
 		////////////////////////////////////////////////////////////
+	#if 0
+		///////////////////////////////////////////////
+		// TODO: Giấy ngắn, báo chụp ảnh, đợi confirm 
+		// rồi nhả giấy ra
+		///////////////////////////////////////////////
+		if (readFrontSensor() == PAPER_UNDETECTED && readMidSensor() == PAPER_DETECTED) {
+			LEDFLASH.OnState();
+			ENGINES.setMOTORS(MOTOR_FRONT, STOPPING);
+			sendPCREQandWait(MPU_REQSCREENSHOT);
+			scannerStageRun = STAGE_4TH;
+			break;
+		}
+	#else
+		///////////////////////////////////////////////
+		// TODO: Giấy ngắn, báo chụp ảnh, đợi confirm 
+		// rồi nhả giấy ra
+		///////////////////////////////////////////////
+		if (isPaperShortDetected == true || 
+			(readFrontSensor() == PAPER_UNDETECTED && readMidSensor() == PAPER_DETECTED))
+		{
+			APP_PRINT("----->/CASE/ Short paper\r\n");
+			LEDFLASH.OnState();
+			ENGINES.setMOTORS(MOTOR_FRONT, STOPPING);
+			sendPCREQandWait(MPU_REQSCREENSHOT);
+			scannerStageRun = STAGE_4TH;
+			break;
+		}
+	#endif
+
 		if (readRearSensor() == PAPER_DETECTED) { /* Giấy dài */
+			APP_PRINT("----->/CASE/ Long paper\r\n");
 			ENGINES.setMOTORS(MOTOR_FRONT, STOPPING);
 			LEDFLASH.OnState();
 			sendPCREQandWait(MPU_REQSCREENSHOT);
 			scannerStageRun = STAGE_3RD;
 			EXTI_DetectOutOfPaper(true);
 			EXTI_DetectShortPaper(false);
-		}
-		else {
-			///////////////////////////////////////////////
-			// TODO: Giấy ngắn, báo chụp ảnh, đợi confirm 
-			// rồi nhả giấy ra
-			///////////////////////////////////////////////
-			if (readFrontSensor() == PAPER_UNDETECTED && readMidSensor() == PAPER_DETECTED) {
-				LEDFLASH.OnState();
-				ENGINES.setMOTORS(MOTOR_FRONT, STOPPING);
-				sendPCREQandWait(MPU_REQSCREENSHOT);
-				scannerStageRun = STAGE_4TH;
-			}
 		}
 	}
 	break;

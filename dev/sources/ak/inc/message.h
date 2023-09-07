@@ -263,6 +263,11 @@ extern uint8_t set_data_dynamic_msg(ak_msg_t* msg, uint8_t* data, uint32_t size)
 extern uint8_t* get_data_dynamic_msg(ak_msg_t* msg);
 extern uint32_t get_data_len_dynamic_msg(ak_msg_t* msg);
 
+#define getDataCommonMsg(m)		get_data_common_msg(m)
+#define getDataLenCommonMsg(m)	get_data_len_common_msg(m)
+#define getDataDynamicMsg(m)	get_data_dynamic_msg(m)
+#define getDataLenDynamicMsg(m)	get_data_len_dynamic_msg(m)
+
 #ifdef __cplusplus
 }
 #endif

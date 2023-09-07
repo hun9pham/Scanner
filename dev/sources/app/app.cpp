@@ -79,11 +79,11 @@ int main_app() {
 	ENGINES.initialize();
 
 	/* Delay coefficient */
-	EEPROM_Read(eepromUSER_SETTING_ADDR, (uint8_t*)&usrAdjust, sizeof(UserSetting));
+	EEPROM_Read(eepromUSER_SETTING_ADDR, (uint8_t*)&usrAdjust, sizeof(UserSetting_t));
 	if (delaySCROLLING_MAGICNUM != usrAdjust.magicNum) {
 		usrAdjust.magicNum = delaySCROLLING_MAGICNUM;
 		usrAdjust.delayVal = 500;
-		EEPROM_Write(eepromUSER_SETTING_ADDR, (uint8_t*)&usrAdjust, sizeof(UserSetting));
+		EEPROM_Write(eepromUSER_SETTING_ADDR, (uint8_t*)&usrAdjust, sizeof(UserSetting_t));
 	}
 
 	/*---------------------------------------------------------------------*/
@@ -140,34 +140,36 @@ void appTaskInit() {
 
 /*-------------------------------------------------------------------------------------------*/
 void TaskPollMPUIf() {
-	extern MPU_IncomMsg_t MPU_IncomMsg;
-	uint8_t data;
+	uint8_t u8Data;
 
     while (!isRingBufferCharEmpty(&MPUInterfaceRx)) {
         ENTRY_CRITICAL();
-        data = ringBufferCharGet(&MPUInterfaceRx);
+        u8Data = ringBufferCharGet(&MPUInterfaceRx);
         EXIT_CRITICAL();
         
 		if (MPU_IncomMsg.ind < MAX_MPU_MSG_RECV_LEN) {
-			MPU_IncomMsg.buf[MPU_IncomMsg.ind++] = data;
+			MPU_IncomMsg.buf[MPU_IncomMsg.ind++] = u8Data;
+
+			if (u8Data == 10) { // '\n'
+				MPU_IncomMsg.buf[MPU_IncomMsg.ind] = 0;
+				
+				if (strcmp((const char*)MPU_IncomMsg.buf, MPU_CORMFIRM) == 0) {
+					APP_PRINT("MPU_CORMFIRM\r\n");
+					taskPostPureMsg(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_PROCEDURE_CALL_RESP);
+				}
+				else if (strcmp((const char*)MPU_IncomMsg.buf, MPU_WEBTIMEOUT) == 0) {
+					APP_PRINT("MPU_WEBTIMEOUT\r\n");
+					taskPostPureMsg(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_ENTRY_IDLING);
+				}
+				else if (strcmp((const char*)MPU_IncomMsg.buf, MPU_NOTIFYLOGIN) == 0) {
+					APP_PRINT("MPU_NOTIFYLOGIN\r\n");
+					taskPostPureMsg(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_START_WORKFLOW_REQ);
+				}
+				MPU_IncomMsg.ind = 0;
+			}
 		}
 		else {
-			memset(&MPU_IncomMsg, 0, sizeof(MPU_IncomMsg_t));
-		}
-		if (strcmp((const char*)MPU_IncomMsg.buf, MPU_CORMFIRM) == 0) {
-			APP_PRINT("MPU_CORMFIRM\r\n");
-			taskPostPureMsg(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_PROCEDURE_CALL_RESP);
-			memset(&MPU_IncomMsg, 0, sizeof(MPU_IncomMsg_t));
-		}
-		else if (strcmp((const char*)MPU_IncomMsg.buf, MPU_WEBTIMEOUT) == 0) {
-			APP_PRINT("MPU_WEBTIMEOUT\r\n");
-			taskPostPureMsg(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_ENTRY_IDLING);
-			memset(&MPU_IncomMsg, 0, sizeof(MPU_IncomMsg_t));
-		}
-		else if (strcmp((const char*)MPU_IncomMsg.buf, MPU_NOTIFYLOGIN) == 0) {
-			APP_PRINT("MPU_NOTIFYLOGIN\r\n");
-			taskPostPureMsg(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_START_WORKFLOW_REQ);
-			memset(&MPU_IncomMsg, 0, sizeof(MPU_IncomMsg_t));
+			MPU_IncomMsg.ind = 0;
 		}
     }
 }

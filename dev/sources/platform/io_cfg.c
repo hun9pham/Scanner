@@ -12,6 +12,8 @@ static uint8_t MPUInterfaceRxBuf[UART_MPU_IF_BUFFER_SIZE];
 volatile bool MOTOR1_EncoderPulse = false;
 volatile bool MOTOR2_EncoderPulse = false;
 
+volatile bool isPaperShortDetected;
+
 void ledLifeInit() {
 	GPIO_InitTypeDef GPIO_InitStructure;
 
