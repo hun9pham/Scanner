@@ -44,6 +44,8 @@ int main_app() {
 			"  \\__ \\/ ___/ __ `/ __ \\/ __ \\/ _ \\/ ___/\r\n"
 			" ___/ / /__/ /_/ / / / / / / /  __/ /    \r\n"
 			"/____/\\___/\\__,_/_/ /_/_/ /_/\\___/_/     \r\n"
+			"\r\n"
+			"VERSION: %s\r\n", FIRMWARE_VERSION
 			);
 #endif
 	APP_PRINT(KNRM"\n[APPLICATION] Welcome to my application\n");
@@ -141,35 +143,38 @@ void appTaskInit() {
 /*-------------------------------------------------------------------------------------------*/
 void TaskPollMPUIf() {
 	uint8_t u8Data;
+	bool execCompleted = false;
 
     while (!isRingBufferCharEmpty(&MPUInterfaceRx)) {
         ENTRY_CRITICAL();
         u8Data = ringBufferCharGet(&MPUInterfaceRx);
         EXIT_CRITICAL();
-        
+
 		if (MPU_IncomMsg.ind < MAX_MPU_MSG_RECV_LEN) {
 			MPU_IncomMsg.buf[MPU_IncomMsg.ind++] = u8Data;
-
-			if (u8Data == 10) { // '\n'
-				MPU_IncomMsg.buf[MPU_IncomMsg.ind] = 0;
-				
-				if (strcmp((const char*)MPU_IncomMsg.buf, MPU_CORMFIRM) == 0) {
-					APP_PRINT("MPU_CORMFIRM\r\n");
-					taskPostPureMsg(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_PROCEDURE_CALL_RESP);
-				}
-				else if (strcmp((const char*)MPU_IncomMsg.buf, MPU_WEBTIMEOUT) == 0) {
-					APP_PRINT("MPU_WEBTIMEOUT\r\n");
-					taskPostPureMsg(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_ENTRY_IDLING);
-				}
-				else if (strcmp((const char*)MPU_IncomMsg.buf, MPU_NOTIFYLOGIN) == 0) {
-					APP_PRINT("MPU_NOTIFYLOGIN\r\n");
-					taskPostPureMsg(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_START_WORKFLOW_REQ);
-				}
-				MPU_IncomMsg.ind = 0;
-			}
 		}
 		else {
-			MPU_IncomMsg.ind = 0;
+			memset(&MPU_IncomMsg, 0, sizeof(MPU_IncomMsg_t));
+		}
+		
+		if (strcmp((const char*)MPU_IncomMsg.buf, MPU_CORMFIRM) == 0) {
+			APP_PRINT("MPU_CORMFIRM\r\n");
+			taskPostPureMsg(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_PROCEDURE_CALL_RESP);
+			execCompleted = true;
+		}
+		else if (strcmp((const char*)MPU_IncomMsg.buf, MPU_WEBTIMEOUT) == 0) {
+			APP_PRINT("MPU_WEBTIMEOUT\r\n");
+			taskPostPureMsg(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_ENTRY_IDLING);
+			execCompleted = true;
+		}
+		else if (strcmp((const char*)MPU_IncomMsg.buf, MPU_NOTIFYLOGIN) == 0) {
+			APP_PRINT("MPU_NOTIFYLOGIN\r\n");
+			taskPostPureMsg(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_START_WORKFLOW_REQ);
+			execCompleted = true;
+		}
+
+		if (execCompleted) {
+			memset(&MPU_IncomMsg, 0, sizeof(MPU_IncomMsg_t));
 		}
     }
 }

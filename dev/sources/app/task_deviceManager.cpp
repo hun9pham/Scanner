@@ -31,7 +31,7 @@ static DevMngCtlStage_t scannerStageRun = STAGE_IDLE;
 static DevMngCtlStage_t dbgStageRun = STAGE_EXCP;
 #endif
 
-static uint32_t timeStamp = 0;
+static uint32_t timBlinky;
 
 /* Private function prototypes -----------------------------------------------*/
 static void MOTORS_Monitoring();
@@ -39,6 +39,26 @@ static void sendPCREQandWait(const char *pcMsg) {
 	taskPostCommonMsg(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_PROCEDURE_CALL_REQ,
 						(uint8_t*)pcMsg, strlen(pcMsg));
 	delayMillis(250);
+}
+
+static bool customDelay(uint32_t timeOut, uint32_t timStamp) {
+	////////////////////////////////////
+	// TODO: Cuộn hết giấy đến khi cảm
+	// biến 1 không thấy giấy nữa
+	///////////////////////////////////
+	if (readMidSensor() == PAPER_UNDETECTED) {
+		return true;
+	}
+
+	////////////////////////////////////
+	// TODO: Cuộn hết giấy đến khi hết
+	// thời gian chờ.
+	///////////////////////////////////
+	if (millisTick() - timStamp > timeOut) {
+		return true;
+	}
+
+	return false;
 }
 
 /* Function implementation ---------------------------------------------------*/
@@ -95,7 +115,7 @@ void TaskDeviceManager(ak_msg_t* msg) {
 		APP_DBG_SIG(TAG, "SL_DMANAGER_START_WORKFLOW_REQ");
 
 		scannerStageRun = STAGE_1ST;
-		timeStamp = 0;
+		timBlinky = 0;
 		taskPollingSetAbility(SL_TASK_POLL_DEVMANAGER_ID, AK_ENABLE);
 	}
 	break;
@@ -157,9 +177,9 @@ void TaskPollDevManager() {
 		/////////////////////////////////////////////////
 		// TODO: Chờ cảm biến 1 phát hiện giấy đưa vào
 		/////////////////////////////////////////////////
-		if (millisTick() - timeStamp > 250) {
+		if (millisTick() - timBlinky > 250) {
 			LEDDIR.Blinking();
-			timeStamp = millisTick();
+			timBlinky = millisTick();
 		}
 
 		if (readFrontSensor() == PAPER_DETECTED) {
@@ -237,7 +257,9 @@ void TaskPollDevManager() {
 		}
 		else {
 			ENGINES.setMOTORS(DUOMOTORS, SCROLL_FORDWARD);
-			delayMillis(usrAdjust.delayVal);
+
+			uint32_t timStamp = millisTick();
+			while (!customDelay(usrAdjust.delayVal, timStamp));
 			ENGINES.setMOTORS(DUOMOTORS, STOPPING);
 			sendPCREQandWait(MPU_REQSCREENSHOT);
 		}
@@ -288,10 +310,10 @@ void MOTORS_Monitoring() {
 	bool isFault = false;
 	bool isMOTORRun;
 	static uint8_t assertPaperJameCnt = 0;
-	static uint32_t timeStamp = millisTick();
+	static uint32_t timBlinky = millisTick();
 
-	if (millisTick() - timeStamp > MOTORS_MONITOR_INTERVAL) {
-		timeStamp = millisTick();
+	if (millisTick() - timBlinky > MOTORS_MONITOR_INTERVAL) {
+		timBlinky = millisTick();
 		////////////////////
 		// MOTOR Front
 		///////////////////

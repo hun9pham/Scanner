@@ -5,7 +5,7 @@
 
 #define APP_PRINT_EN        (1)
 #define APP_DBG_EN          (1)
-#define APP_DBG_SIG_EN      (0)
+#define APP_DBG_SIG_EN      (1)
 #define APP_LOG_EN          (0)
 #define DBG_LINK_PRINT_EN   (0)
 

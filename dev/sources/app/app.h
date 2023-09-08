@@ -99,15 +99,8 @@ enum {
 #define NORMAL_START_ADDRESS			(APP_START_ADDR)
 #define BOOT_START_ADDRESS			    (BOOT_START_ADDR)
 
-#ifdef RELEASE
-#define MCU_PLATFROM                     "Stm32l151c8t6"
-#define FIRMWARE_VERSION 		         "v1.1"
+#define FIRMWARE_VERSION 		         "v1.0.3"
 #define HARDWARE_VERSION 		         "v1.0"
-#else
-#define MCU_PLATFROM                     "STM32L151C8T6"
-#define FIRMWARE_VERSION 		         "v1.0"
-#define HARDWARE_VERSION 		         "v2.0"
-#endif
 
 /* Define Tinker board message */
 #define MPU_NOTIFYLOGIN      (const char*)"2\n"

@@ -118,7 +118,7 @@ int8_t csInfo(uint8_t* argv) {
 
 	default: {
 		APP_PRINT("\n[SYSTEM INFORMATION]\n");
-		APP_PRINT("1. MCU Platform:\t\t%s\n", 			MCU_PLATFROM);
+		APP_PRINT("1. MCU Platform:\t\tSTM32L151C8T6\n");
 		APP_PRINT("\tCPU clock:\t\t%d Hz\n", 			systemIn4.CpuClk);
 		APP_PRINT("\tTime tick:\t\t%d ms\n", 			systemIn4.Tick);
 		APP_PRINT("\tBaudrate:\t\t%d bps\n", 			systemIn4.Baudrate);
