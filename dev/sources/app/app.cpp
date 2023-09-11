@@ -164,7 +164,7 @@ void TaskPollMPUIf() {
 		}
 		else if (strcmp((const char*)MPU_IncomMsg.buf, MPU_WEBTIMEOUT) == 0) {
 			APP_PRINT("MPU_WEBTIMEOUT\r\n");
-			taskPostPureMsg(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_ENTRY_IDLING);
+			taskPostPureMsg(SL_TASK_DEVMANAGER_ID, SL_DMANAGER_CONVEYOR_CLEANUP);
 			execCompleted = true;
 		}
 		else if (strcmp((const char*)MPU_IncomMsg.buf, MPU_NOTIFYLOGIN) == 0) {
