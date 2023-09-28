@@ -10,7 +10,7 @@
 #define MAX_MPU_MSG_RECV_LEN        (8)
 
 #define eepromUSER_SETTING_ADDR     (50)
-#define delaySCROLLING_MAGICNUM     (0x11223344)
+#define delaySCROLLING_MAGICNUM     (0x11223345)
 
 /* Enumarics -----------------------------------------------------------------*/
 

@@ -10,7 +10,7 @@ BASH_BLUE  = '\e[0;33m'
 BASH_RED   = '\e[0;31m'
 
 # Name of build target
-NAME_MODULE = ScannerV1.1_RELEASE
+NAME_MODULE = ScannerV1.3.1_RELEASE
 BUILD_DIR = build
 TARGET = $(BUILD_DIR)/$(NAME_MODULE).axf
 

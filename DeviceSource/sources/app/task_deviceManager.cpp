@@ -32,6 +32,7 @@ static DevMngCtlStage_t dbgStageRun = STAGE_EXCP;
 #endif
 
 static uint32_t timBlinky;
+static uint8_t scrollCounter;
 
 /* Private function prototypes -----------------------------------------------*/
 static void MOTORS_Monitoring();
@@ -47,6 +48,17 @@ static bool customDelay(uint32_t timeOut, uint32_t timStamp) {
 	// biến 1 không thấy giấy nữa
 	///////////////////////////////////
 	if (readMidSensor() == PAPER_UNDETECTED) {
+		return true;
+	}
+
+	////////////////////////////////////////
+	// TODO: Chụp 1 lần, cuốn tiếp để chụp
+	// mà ở lần cuốn thứ 2 giấy có hết ở 
+	// cảm biến 1 thì dừng cho chụp rồi 
+	// tuồn giấy ra.
+	////////////////////////////////////////
+	if (readFrontSensor() == PAPER_UNDETECTED && scrollCounter == 2) {
+		scannerStageRun = STAGE_4TH;
 		return true;
 	}
 
@@ -191,6 +203,7 @@ void TaskPollDevManager() {
 				EXTI_DetectEndpointPaper(true);
 				EXTI_DetectShortPaper(true);
 				isPaperShortDetected = false;
+				scrollCounter = 0;
 			}
 		}
 		else {
@@ -206,19 +219,7 @@ void TaskPollDevManager() {
 		// cảm biến 1 phát hiện hết giấy, cảm biến 2 phát hiện có 
 		// giấy, cảm biến 3 ko có giấy).
 		////////////////////////////////////////////////////////////
-	#if 0
-		///////////////////////////////////////////////
-		// TODO: Giấy ngắn, báo chụp ảnh, đợi confirm 
-		// rồi nhả giấy ra
-		///////////////////////////////////////////////
-		if (readFrontSensor() == PAPER_UNDETECTED && readMidSensor() == PAPER_DETECTED) {
-			LEDFLASH.OnState();
-			ENGINES.setMOTORS(MOTOR_FRONT, STOPPING);
-			sendPCREQandWait(MPU_REQSCREENSHOT);
-			scannerStageRun = STAGE_4TH;
-			break;
-		}
-	#else
+		
 		///////////////////////////////////////////////
 		// TODO: Giấy ngắn, báo chụp ảnh, đợi confirm 
 		// rồi nhả giấy ra
@@ -233,7 +234,6 @@ void TaskPollDevManager() {
 			scannerStageRun = STAGE_4TH;
 			break;
 		}
-	#endif
 
 		if (readRearSensor() == PAPER_DETECTED) { /* Giấy dài */
 			APP_PRINT("----->/CASE/ Long paper\r\n");
@@ -243,6 +243,7 @@ void TaskPollDevManager() {
 			scannerStageRun = STAGE_3RD;
 			EXTI_DetectOutOfPaper(true);
 			EXTI_DetectShortPaper(false);
+			++scrollCounter;
 		}
 	}
 	break;
@@ -256,10 +257,11 @@ void TaskPollDevManager() {
 			scannerStageRun = STAGE_4TH;
 		}
 		else {
+			++scrollCounter;
 			ENGINES.setMOTORS(DUOMOTORS, SCROLL_FORDWARD);
-
 			uint32_t timStamp = millisTick();
-			while (!customDelay(usrAdjust.delayVal, timStamp));
+			// while (!customDelay(usrAdjust.delayVal, timStamp));
+			while (!customDelay(470, timStamp));
 			ENGINES.setMOTORS(DUOMOTORS, STOPPING);
 			sendPCREQandWait(MPU_REQSCREENSHOT);
 		}

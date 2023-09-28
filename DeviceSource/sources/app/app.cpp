@@ -84,7 +84,7 @@ int main_app() {
 	EEPROM_Read(eepromUSER_SETTING_ADDR, (uint8_t*)&usrAdjust, sizeof(UserSetting_t));
 	if (delaySCROLLING_MAGICNUM != usrAdjust.magicNum) {
 		usrAdjust.magicNum = delaySCROLLING_MAGICNUM;
-		usrAdjust.delayVal = 500;
+		usrAdjust.delayVal = 470;
 		EEPROM_Write(eepromUSER_SETTING_ADDR, (uint8_t*)&usrAdjust, sizeof(UserSetting_t));
 	}
 
